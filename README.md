@@ -1,2 +1,2 @@
 # LGGM
-Codes to implement the methods described in [https://arxiv.org/abs/1711.00877]{https://arxiv.org/abs/1711.00877}
+Codes to implement the methods described in [https://arxiv.org/abs/1711.00877]
