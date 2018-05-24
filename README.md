@@ -66,7 +66,7 @@ Rscript process_java_output/process_java_results_sim2A.r
 cd ../Rcodes
 Rscript data_preprocess/exp-PHMRC.R
 ```
-2. Run a classification model on this train-test split with training data, i.e., the purple box in Figure 3. For the no training data version, change maxTrain below to 0. The following 100 iteration takes about 20 min. 
+2. Run a classification model on this train-test split with training data, i.e., the purple box in Figure 3. For the no training data version, change maxTrain below to 0. The following 100 iteration takes about 20 min. For real  use of the codes, more iterations are needed.
 ```
 cd ../src
 P=162 # number of symptoms
