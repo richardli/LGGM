@@ -63,8 +63,13 @@ getProbbase <- function(train, G, causes){
 # Experiment with simple random sampling
 ########################################################
 set.seed(1)
+data <- ConvertData.phmrc(PHMRC_all_rm, PHMRC_all_rm, phmrc.type = "adult", cutoff="default", cause="va34")
+PHMRC_clean <- data$output
+miss <- apply(PHMRC_clean[, -c(1,2)], 2, function(x){sum(x == ".")/length(x)})
+PHMRC_clean <- PHMRC_clean[, c(1,2,which(miss < 0.9)+2)]
 nn <- 1000
-for(i in 1:50){
+nsample <- 1 # change this to 50
+for(i in 1:nsample){
 	# adult
 	is.test <- sample(1:dim(PHMRC_all_rm)[1], nn*2)
 	
@@ -73,7 +78,7 @@ for(i in 1:50){
 	
 	probbase <- getProbbase3(train, 26, 1:26)
 	delta <- qnorm(1-probbase)
-	write.table(delta, file = paste0("../data/expnew/typePS", i, "_delta.csv"), row.names = F, col.names = F, sep = ",", quote=F)
+	write.table(delta, file = paste0("../data/phmrc/typePS", i, "_delta.csv"), row.names = F, col.names = F, sep = ",", quote=F)
 
 	train <- train[, -1]
 	test <- test[, -1]
@@ -82,38 +87,9 @@ for(i in 1:50){
 
 	test1 <- test[1:nn, ]
 	test2 <- test[(nn+1):(nn+nn), ]
-	write.table(test1, file = paste0("../data/expnew/PS_", 0, "_train", i, ".csv"), row.names = F, col.names = F, sep = ",", quote=F)
-	write.table(test2, file = paste0("../data/expnew/PS_", 0, "_test", i, ".csv"), row.names = F, col.names = F, sep = ",", quote=F)		
+	write.table(test1, file = paste0("../data/phmrc/PS_", 0, "_train", i, ".csv"), row.names = F, col.names = F, sep = ",", quote=F)
+	write.table(test2, file = paste0("../data/phmrc/PS_", 0, "_test", i, ".csv"), row.names = F, col.names = F, sep = ",", quote=F)		
 	csmf <- as.numeric(table(train[, 1]) / dim(train)[1])
-	write.table(csmf, file = paste0("../data/expnew/PS", i, "csmf.csv"), row.names = F, col.names = F, sep = ",", quote=F)
+	write.table(csmf, file = paste0("../data/phmrc/PS", i, "csmf.csv"), row.names = F, col.names = F, sep = ",", quote=F)
 }
 
-########################################################
-# Experiment with simple random sampling
-########################################################
-set.seed(1)
-nn <- 1000
-for(i in 1:50){
-	# adult
-	is.test <- sample(1:dim(PHMRC_all_rm)[1], nn*2)
-	
-	test <- PHMRC_clean[is.test, ]
-	train <- PHMRC_clean[-is.test, ]
-	
-	probbase <- getProbbase(train, 26, 1:26)
-	delta <- qnorm(1-probbase)
-	write.table(delta, file = paste0("../data/expnew/typePR", i, "_delta.csv"), row.names = F, col.names = F, sep = ",", quote=F)
-
-	train <- train[, -1]
-	test <- test[, -1]
-	train[,-1] <- apply(train[,-1], 2, function(x){x[which(x=="")] <- "N";return(x)})
-	test[,-1] <- apply(test[,-1], 2, function(x){x[which(x=="")] <- "N";return(x)})
-
-	test1 <- test[1:nn, ]
-	test2 <- test[(nn+1):(nn+nn), ]
-	write.table(test1, file = paste0("../data/expnew/PR_", 0, "_train", i, ".csv"), row.names = F, col.names = F, sep = ",", quote=F)
-	write.table(test2, file = paste0("../data/expnew/PR_", 0, "_test", i, ".csv"), row.names = F, col.names = F, sep = ",", quote=F)		
-	csmf <- as.numeric(table(train[, 1]) / dim(train)[1])
-	write.table(csmf, file = paste0("../data/expnew/PR", i, "csmf.csv"), row.names = F, col.names = F, sep = ",", quote=F)
-}
-  

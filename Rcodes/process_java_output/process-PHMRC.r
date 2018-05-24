@@ -1,22 +1,3 @@
-#!/bin/bash
-#SBATCH --job-name PostP      # Set a name for your job. This is especially useful if you have multiple jobs queued.
-#SBATCH --partition short     # Slurm partition to use
-#SBATCH --ntasks 1          # Number of tasks to run. By default, one CPU core will be allocated per task
-#SBATCH --time 0-05:00        # Wall time limit in D-HH:MM
-#SBATCH --mem-per-cpu=4000     # Memory limit for each tasks (in MB)
-#SBATCH -o out/Rt_%j.out    # File to which STDOUT will be written
-#SBATCH -e out/Rt_%j.err    # File to which STDERR will be written
-
-# module load R
-# Rscript exp-process-3P.r $SLURM_ARRAY_TASK_ID > ../experiments/log/nP9C-$SLURM_ARRAY_TASK_ID
-
-# sbatch --array=1-100 exp-process-3P.sbatch
-# sbatch --array=101-400 exp-process-3P.sbatch
-# sbatch --array=401-600 exp-process-3P.sbatch
-
-## srun --pty --partition=short --time=2:00:00 --mem-per-cpu=2500 /bin/bash
-## module load R
-## R
 remove(list = ls())
 library(data.table)
 library(mnormt)
@@ -29,7 +10,7 @@ library(tmvtnorm)
 library(matrixcalc)
 library(ROCR)
 library(corrplot)
-source("FanEstimator.r")
+source("functions.r")
 
 evalNBprob <- function(probbase, training, testing, G, csmf = NULL, csmf.true, samepop=TRUE){
 	is.testing <- 1:dim(testing)[1]
@@ -118,118 +99,26 @@ getProbbase3 <- function(train, G, causes, minval=NULL, maxval=NULL){
 	return(probbase)
 }
 
-index <- as.numeric(commandArgs(trailingOnly = TRUE)[1])
-config <- NULL
+rep <- 1
+has.train <- TRUE
+compute_integral <- FALSE # set this to TRUE to reproduce results in the paper
+args_in <- c(paste0("typePS", rep), 
+			 paste0("PS_0_train", rep), 
+			 paste0("PS_0_test", rep), 
+			 paste0("rep", rep), "SSSL")
 
-
-for(case in c(20)){
-for(type in 1:50){
-for(test in c(0)){
-	informative <- "No"		
-	t1 <- paste0("typePS", type)
-	post <- "F"
-	
-	config <- rbind(config, 
-			c(paste0(t1),  
-			  paste0("PS_", test, "_train", type), 
-			  paste0("PS_", test, "_test", type), 
-			  paste0("newPS9-", test,"-",type,"-",case,post), 
-			  "SSSL", "Yes", "Yes", informative,
-			  paste0("PS", type)))
-}}}
-
-
-for(case in c(20)){ 
-for(type in 1:50){
-for(test in c(0)){
-    informative <- "No"
-    t1 <- paste0("typePS", type)
-    post <- "E"
-
-    config <- rbind(config,
-            c(paste0(t1),
-              paste0("PS_", test, "_train", type),
-              paste0("PS_", test, "_test", type),
-              paste0("newPS9-", test,"-",type,"-",case,post),
-              "SSSL", "Yes", "No", informative,
-              paste0("PS", type)))
-}}}
-
-
-for(case in c("C", "D", "21F", "22F", "21E", "22E")){ 
-for(type in 1:50){
-for(test in c(0)){
-    informative <- "No"
-    t1 <- paste0("typePR", type)
-    post <- ""
-    hastrain <- "No"
-    if(case %in% c("D", "21F", "22F")) hastrain <- "Yes"
-    config <- rbind(config,
-            c(paste0(t1),
-              paste0("PR_", test, "_train", type),
-              paste0("PR_", test, "_test", type),
-              paste0("newPR9-", test,"-",type,"-",case,post),
-              "SSSL", "Yes", hastrain, informative,
-              paste0("PR", type)))
-}}}
-
-
-for(case in c("AA", "BB")){ 
-for(type in 1:50){
-for(test in c(0)){
-    informative <- "No"
-    t1 <- paste0("typePS", type)
-    post <- ""
-    hastrain <- "No"
-    if(case %in% c("AA")) hastrain <- "Yes"
-    config <- rbind(config,
-            c(paste0(t1),
-              paste0("PS_", test, "_train", type),
-              paste0("PS_", test, "_test", type),
-              paste0("newPS9-", test,"-",type,"-",case,post),
-              "SSSL", "Yes", hastrain, informative,
-              paste0("PS", type)))
-}}}
-
-
-
-for(case in c("CC", "DD")){ 
-for(type in 1:50){
-for(test in c(0)){
-    informative <- "No"
-    t1 <- paste0("typePR", type)
-    post <- ""
-    hastrain <- "No"
-    if(case %in% c("CC")) hastrain <- "Yes"
-    config <- rbind(config,
-            c(paste0(t1),
-              paste0("PR_", test, "_train", type),
-              paste0("PR_", test, "_test", type),
-              paste0("newPR9-", test,"-",type,"-",case,post),
-              "SSSL", "Yes", hastrain, informative,
-              paste0("PR", type)))
-}}}
-
-args_in <- config[index, ]
-
-dir <- "../experiments/"
-subdir <- "expnew/"
+dir <- "../data/"
+subdir <- ""
 
 dir0 <- paste0(subdir, args_in[1])
 dir1 <-paste0(subdir, args_in[2])
 dir2 <-paste0(subdir, args_in[3])
 name <- paste0(args_in[4])
-# name2 <-  gsub("-true-true", "-false-true", name)
-name2 <- name
 typecov <- args_in[5]
-is.classification <- args_in[6] == "Yes"
-has.train <- args_in[7] == "Yes"
-is.informative <- args_in[8] == "Yes"
+is.classification <- TRUE
+is.informative <- FALSE
 dir0delta <- dir0
-# # fix for file naming issues
-# name2 <- name
-# if((!has.train) && index < n1212) name2 = paste0(name, "-train")
-if(file.exists(paste0(dir, name, "/", name2, "_mean_out_mean.txt"))){
+if(file.exists(paste0(dir, name, "/", name, "_mean_out_mean.txt"))){
 	print(args_in)
 	print("Run finished.")
 }else{
@@ -237,37 +126,17 @@ if(file.exists(paste0(dir, name, "/", name2, "_mean_out_mean.txt"))){
 	stop("Run not finished.")
 }
 
-done <- FALSE
-if(has.train){
-	exist <- file.exists(paste0("rdaVA/201802/", name, ".rda"))
-	if(exist){
-		load(paste0("rdaVA/201802/", name, ".rda"))
-		print(out$metric)
-		print("Done")
-		done <- TRUE
-		# stop()
-	}
-}else{
-	exist <- file.exists(paste0("rdaVA/201802/", name, "notrain.rda"))
-	if(exist){
-		load(paste0("rdaVA/201802/", name, "notrain.rda"))
-		print(out$metric)
-		print("Done")
-		# stop()
-	}
-}
- 
-delta <- read.csv(paste0("../data/", dir0delta, "_delta.csv"), header = F)
+delta <- read.csv(paste0("../data/phmrc/", dir0delta, "_delta.csv"), header = F)
 G <- dim(delta)[1]
 csmf <- rep(1/G, G)
 csmf.train <- csmf
 
 if(has.train){
-	train_sub <- read.csv(paste0("../data/", dir1, ".csv"), header = F)
+	train_sub <- read.csv(paste0("../data/phmrc/", dir1, ".csv"), header = F)
 }else{
 	train_sub <- NULL
 }
-test_sub <- read.csv(paste0("../data/", dir2, ".csv"), header = F)
+test_sub <- read.csv(paste0("../data/phmrc/", dir2, ".csv"), header = F)
 
 probbase <- 1 - pnorm(as.matrix(delta))
 G <- dim(probbase)[1]
@@ -281,46 +150,18 @@ csmf.true <- as.numeric((table(c(1:G, causes)) - 1)/length(causes))
 ######################################
 if(is.classification){
 	fit.nb <- evalNBprob(probbase = probbase, training = train_sub, testing = test_sub, G, csmf = csmf.train, csmf.true = csmf.true, samepop = FALSE)
-	
-
-	if(has.train){
-		 if( length(grep("PR", args_in[1])) == 1){
-       		 print("Use getProbbase")
-        	 probbase2 <- getProbbase(cbind(1,train_sub), G, 1:G, minval = min(probbase), maxval = max(probbase))
-        }else{
-       		 probbase2 <- getProbbase3(cbind(1,train_sub), G, 1:G, minval = min(probbase), maxval = max(probbase))
-        }   
-
-		
-		fit.nb.noprior <- evalNBprob(probbase = probbase2, training = train_sub, testing = test_sub, G, csmf = csmf.train, csmf.true = csmf.true, samepop = FALSE)
-		fitted.nb.noprior <- fit.nb.noprior$fitted.nb
-	}else{
-		fit.nb.noprior <- NULL
-		fitted.nb.noprior <- NA
-	}
+	fit.nb.noprior <- NULL
+	fitted.nb.noprior <- NA
 	#####################################
 	pnb <- fit.nb$pnb
 	pick.nb <- apply(pnb, 1, which.max)
-	print(table(pick.nb[1:dim(test_sub)[1]], test_sub[, 1]))
+	# print(table(pick.nb[1:dim(test_sub)[1]], test_sub[, 1]))
 }else{
 	fit.nb <-  fit.nb.noprior <- pick.nb <- pick.draw <- pick.int <- prob.mean <- pnb_integral <- NULL
 	fitted.nb.noprior  <- NA
 }
 
-print("Naive Bayes")
-print(fit.nb$fitted.nb)
-print(fit.nb.noprior$fitted.nb)
-
-# print("Updated")
-# out$metric[6, ] <- fitted.nb.noprior
-# if(has.train){
-# 		save(out, file = paste0("rdaVA/201802/", name, ".rda"))
-# 	}else{
-# 		save(out, file = paste0("rdaVA/201802/", name, "notrain.rda"))
-# 	}
-
-######################################
-prefix <- paste0(dir, name, "/", name2)
+prefix <- paste0(dir, name, "/", name)
 prec.fit <- as.matrix(fread(paste0(prefix, "_invcorr_out_mean.txt"), sep = ","))
 mean.fit <- as.matrix(fread(paste0(prefix, "_mean_out_mean.txt"), sep = ","))
 corr.fit <- as.matrix(fread(paste0(prefix, "_corr_out_mean.txt"), sep = ","))
@@ -359,19 +200,8 @@ if(is.classification){
 }
 
 type <- rep(1, P)
-# corr.mean <- prec.mean <- cov.mean <- matrix(0, P, P)
-# delta.mean <- matrix(0, G, P)
-# delta.fit <- array(0, dim = c(Nitr, G, P))
-# for(i in 2:(Nitr+1)){
-# 	corr.mean <- corr.mean + corr.fit[((i-1) * P + 1):(i * P), ]
-# 	prec.mean <- prec.mean + prec.fit[((i-1) * P + 1):(i * P), ]
-# 	cov.mean <- cov.mean + solve(prec.fit[((i-1) * P + 1):(i * P), ])
-# 	delta.mean <- delta.mean + mean.fit[((i-1) * G + 1):(i * G), ]
-# 	delta.fit[i-1, , ] <- mean.fit[((i-1) * G + 1):(i * G), ]
-# }
 corr.mean <- corr.fit  
 prec.mean <- prec.fit 
-# cov.mean <- cov.mean / Nitr
 delta.mean <- mean.fit
 if(is.classification){
 	Ntest <- dim(test_sub)[1] 
@@ -394,19 +224,18 @@ if(is.classification){
 	tmp <- rbind(
 		  fitted.s1,
 		  rep(NA, 4),
-		  fitted, 
-		  rep(NA, 4),
+		  # fitted, 
+		  # rep(NA, 4),
 		  fit.nb$fitted.nb,
-		  fitted.nb.noprior,
 		  fit.nb$fitted.inter)
 		  # fit.nb.noprior$fitted.inter)
 	if(args_in[3] != "K_all0"){
 		colnames(tmp) <- c("CSMF", "Top1", "Top2", "Top3")
-		rownames(tmp) <- c("Fitted-S1", "Integral-S1", "Fitted", "Integral", "NaiveBayes", "NaiveBayes_train","InterVA")
+		rownames(tmp) <- c("Fitted", "Integral", "NaiveBayes", "InterVA")
 		print(tmp)
 	}
 	pick.draw <- apply(prob.mean, 1, which.max)
-	print(table(pick.draw, test_sub[, 1]))
+	# print(table(pick.draw, test_sub[, 1]))
 
 	
 	out <- list(corr.mean = corr.mean, 
@@ -426,45 +255,28 @@ if(is.classification){
 				assignment.fit = assignment.fit,
 				fitted.nb = fit.nb, 
 				fitted.nb.noprior = fit.nb.noprior)
-	if(has.train){
-		save(out, file = paste0("rdaVA/201802/", name, ".rda"))
-	}else{
-		save(out, file = paste0("rdaVA/201802/", name, "notrain.rda"))
-	}
-
 	csmfacc <- function(csmf, csmf.fit){ 1-sum(abs(csmf.fit - csmf))/2/(1-min(csmf))}
 
 
 	# first stage
-	pnb_integral.s1 <- plug_in_estimator(test0, type, corr.fit.s1, mean.fit.s1, csmf.mean.s1)
-	pick.int.s1 <- apply(pnb_integral.s1, 1, which.max)
-	print(table(pick.int.s1, test_sub[, 1]))
-	fitted_integral.s1 <- getAccuracy(pnb_integral.s1, test_sub[, 1], csmf.true, csmf.mean.s1)[1:4]
-	fitted_integral.s1[1] <- csmfacc(csmf.true, apply(pnb_integral.s1, 2, mean))
-
-	# post selection
-	pnb_integral <- plug_in_estimator(test0, type, corr.mean, delta.mean, csmf.mean)
-	pick.int <- apply(pnb_integral, 1, which.max)
-	print(table(pick.int, test_sub[, 1]))
-	fitted_integral <- getAccuracy(pnb_integral, test_sub[, 1], csmf.true, csmf.mean)[1:4]
-	fitted_integral[1] <- csmfacc(csmf.true, apply(pnb_integral, 2, mean))
-
-	tmp[2, ] <- fitted_integral.s1
-	tmp[4, ] <- fitted_integral
-	print(fitted_integral)
+	if(compute_integral){
+		pnb_integral.s1 <- plug_in_estimator(test0, type, corr.fit.s1, mean.fit.s1, csmf.mean.s1)
+		pick.int.s1 <- apply(pnb_integral.s1, 1, which.max)
+		# print(table(pick.int.s1, test_sub[, 1]))
+		fitted_integral.s1 <- getAccuracy(pnb_integral.s1, test_sub[, 1], csmf.true, csmf.mean.s1)[1:4]
+		fitted_integral.s1[1] <- csmfacc(csmf.true, apply(pnb_integral.s1, 2, mean))
+		# update results
+		out$pnb_integral.s1 <- pnb_integral.s1
+		out$pick.int.s1 <- pick.int.s1
+		out$metric[2, ] <- fitted_integral.s1
+	}
 }else{
 	tmp <- NULL
 }
 
-# update results
-out$pnb_integral <- pnb_integral
-out$pnb_integral.s1 <- pnb_integral.s1
-out$pick.int <- pick.int
-out$pick.int.s1 <- pick.int.s1
-out$metric <- tmp
 if(has.train){
-	save(out, file = paste0("rdaVA/201802/", name, ".rda"))
+	save(out, file = paste0("../data/processed/", name, ".rda"))
 }else{
-	save(out, file = paste0("rdaVA/201802/", name, "notrain.rda"))
+	save(out, file = paste0("rdaVA/processed/", name, "notrain.rda"))
 }
  

@@ -27,7 +27,7 @@ library(tmvtnorm)
 library(matrixcalc)
 library(ROCR)
 library(corrplot)
-source("FanEstimator.r")
+source("functions.r")
 
 evalNBprob <- function(probbase, training, testing, G, csmf = NULL, csmf.true, samepop=TRUE){
 	is.testing <- 1:dim(testing)[1]
