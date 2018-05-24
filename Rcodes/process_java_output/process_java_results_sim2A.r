@@ -26,32 +26,23 @@ library("truncnorm")
 library("tmvtnorm")
 library("matrixcalc")
 library("ROCR")
-source("FanEstimator.r")
+source("functions.r")
 
-index <- as.numeric(commandArgs(trailingOnly = TRUE)[1])
-compact <- TRUE
-config <- NULL
-types <- c("CC", "DD")
-covs <- c("Random")
-Ns <- c(0, 80, 200)
-misses <- c("0.0","0.2", "0.5")
-methods <- c("SSSL")
-allseeds <- seq(1, 46, by = 5)
-config <- expand.grid(types, covs, Ns, misses, methods, allseeds)
-config[] <- lapply(config, as.character)
-args_in <- as.character(config[index, ])
-
-dir <- "../experiments/new"
-G <- 20
+# In the paper the results are provided by setting this to TRUE
+# It takes longer time to compute
+compute_integral <- FALSE 
+dir <- "../data/"
+G <- 5
 Ntest <- 800
 P <- 50
-name <- args_in[1]
-type <- args_in[2]
-N <- as.numeric(args_in[3]) + Ntest
-miss <- args_in[4]
-method <- args_in[5]
-args <- c(paste0(name, type, N-Ntest), method, miss)
-start <- as.numeric(args_in[6])
+compact <- TRUE
+name <- "test2"
+type <- "SSSL"
+N <- 200 + 800
+miss <- "0.2"
+method <- "SSSL"
+args <- c(name, method, miss)
+start <- 0
 
 
 # args <- c("D1A0", "PX", "0.5")
@@ -76,15 +67,13 @@ seeds <- sort(unique(as.numeric(tmp)))
 print(paste0("Total number of fit: ", length(seeds)))
 
 
-seeds <- seeds[start : (start + 4)]
-metric2 <- array(NA, dim = c(5, 6, 4))
-index.out <- which(allseeds == start)
+metric2 <- array(NA, dim = c(length(seeds), 4, 4))
 
-for(kk in 1:5){
+for(kk in 1:length(seeds)){
 
 	rep <- seeds[kk]
 	cat(".\n")
-	prefix <- paste0(dir, subdir, "/new", subdir, "Rep", rep)
+	prefix <- paste0(dir, subdir, "/", subdir, "Rep", rep)
 	
 	if(compact){
 		if(file.exists(paste0(prefix, "_corr_out_core_mean.txt"))){
@@ -212,37 +201,31 @@ for(kk in 1:5){
 		fitted.s1 <- getAccuracy(prob.mean.s1, membership[1:Ntest], csmf.true, csmf.mean.s1)[1:4]
 	}
 
-	print(fitted_nb[, 1:4])
-	print(fitted)
-	print(fitted.s1)
-	# print(rbind(as.numeric(prob.true), prob.fit.summary ))
-	# print(get4norm(list(Fan.unknown.combine, corr.mean), corr.true))
-
+	# print(rbind(fitted_nb, fitted.s1))
 
 	csmfacc <- function(csmf, csmf.fit){ 1-sum(abs(csmf.fit - csmf))/2/(1-min(csmf))}
-	pnb_integral <- plug_in_estimator(test[1:Ntest, -1], type, corr.fit2, delta.mean, csmf.mean)
-	fitted_integral <- getAccuracy(pnb_integral, membership[1:Ntest], csmf.true, NULL)[1:4]
 
-
-	pnb_integral.s1 <- plug_in_estimator(test[1:Ntest, -1], type, corr.fit.s1, mean.fit.s1, csmf.mean.s1)
-	fitted_integral.s1 <- getAccuracy(pnb_integral.s1, membership[1:Ntest], csmf.true, NULL)[1:4]
+	if(compute_integral){
+		pnb_integral.s1 <- plug_in_estimator(test[1:Ntest, -1], type, corr.fit.s1, mean.fit.s1, csmf.mean.s1)
+		fitted_integral.s1 <- getAccuracy(pnb_integral.s1, membership[1:Ntest], csmf.true, NULL)[1:4]
+	}else{
+		fitted_integral.s1 <- rep(NA, 4)
+	}
 
 
 	fitted_Fan <- rep(NA, 4)
 	tmp <- rbind(fitted.s1,
 				fitted_integral.s1, 
-				fitted,
-				fitted_integral, 
 				fitted_nb[, 1:4]
 		)
 	
 	metric2[kk, , ] <- tmp
 	
-	dimnames(metric2)[[2]] <- c("FittedS1", "Plug-inS1","Fitted", "Plug-in",  "NaiveBayes", "InterVA")
+	dimnames(metric2)[[2]] <- c("Fitted", "Plug-in",  "NaiveBayes", "InterVA")
 	dimnames(metric2)[[3]] <- c("CSMF", "top1", "top2", "top3")
 	print(apply(metric2, c(2, 3), mean, na.rm = TRUE))
 
-	save(metric2, file = paste0("rdaVA/201802/sim/", pre, typecov, miss.rate, "-", index.out, "prediction-0309.rda"))
+	save(metric2, file = paste0("../data/processed/", typecov, pre, miss.rate, "metrics2.rda"))			
 	print(kk)
 }
 

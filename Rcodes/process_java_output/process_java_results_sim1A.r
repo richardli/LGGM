@@ -1,18 +1,10 @@
-#!/bin/bash
-#SBATCH --job-name j0     # Set a name for your job. This is especially useful if you have multiple jobs queued.
-#SBATCH --partition medium     # Slurm partition to use
-#SBATCH --ntasks 1          # Number of tasks to run. By default, one CPU core will be allocated per task
-#SBATCH --time 2-00:00        # Wall time limit in D-HH:MM
-#SBATCH --mem-per-cpu=4000     # Memory limit for each tasks (in MB)
-#SBATCH -o out/Rt_%j.out    # File to which STDOUT will be written
-#SBATCH -e out/Rt_%j.err    # File to which STDERR will be written
-# module load R
-# Rscript process_java_results.r $SLURM_ARRAY_TASK_ID > ../experiments/log/sim0-$SLURM_ARRAY_TASK_ID
-# sbatch --array=1-12 process_java_results.sbatch
+## This script calculates the related output for one LatentModel fit
+## i.e., no classification.
+##
 
 remove(list = ls())
 # install.packages(c("mnormt", "huge","pracma", "mvtnorm", "MCMCpack", "truncnorm", "tmvtnorm", "matrixcalc", "ROCR"))
-library(data.table)
+library("data.table")
 library("mnormt")
 library("huge")
 library("pracma")
@@ -22,30 +14,17 @@ library("truncnorm")
 library("tmvtnorm")
 library("matrixcalc")
 library("ROCR")
-source("FanEstimator.r")
+source("functions.r")
 
-dir <- "../experiments/"
-# typecov <- "PX"
-# typecov <- "SSSL"
+# THIS arguments are followed by the experiment in README.md
+dir <- "../data/"
 G <- 1
-
 N <- 200
 P <- 50
-
-index <- as.numeric(commandArgs(trailingOnly = TRUE)[1])
 compact <- TRUE
-config <- NULL
-types <- c("Case3", "Case4")
-misses <- c("0.0", "0.2", "0.5")
-methods <- c("SSSL", "PX")
-config <- expand.grid(types, misses, methods)
-config[] <- lapply(config, as.character)
-args <- as.character(config[index, ])
-pre <- args[1]
-miss.rate <- args[2]
-typecov <- args[3]
-
-
+pre <- "test1"
+miss.rate <- "0.2"
+typecov <- "SSSL"
 totalEdge <- 0
 processed <- 0
 
@@ -155,9 +134,6 @@ for(rep in seeds[1:nrep]){
 				huge.roc(x$path, s0)
 				}, s0)
 	if(typecov == "SSSL"){
-		tmp <- rocf1(inclusion.fit, as.matrix(s0))
-		auc.sssl <-  tmp$AUC
-		f1.sssl <-  max(tmp$F1)
 		tmp <- rocf1(prec.mean, as.matrix(s0))
 		auc.thres <-  tmp$AUC
 		f1.thres <-  max(tmp$F1)
@@ -167,39 +143,10 @@ for(rep in seeds[1:nrep]){
 		auc.thres <- f1.thres <-  NULL
 	}
 
-	# # HBIC selection
-	# prec_hat <- vector("list", length(out))
-	# for(i in 1:length(out)){
-	# 	hbic <- HBIC(R=alllist[[i]], icov = out[[i]]$icov, n = N, d = P)
-	# 	prec_hat[[i]] <- out[[i]]$icov[[which.min(hbic)]]
-	# }
-	# norm3 <- get4norm(prec_hat, (prec.true), TRUE)
-
-	# if(typecov == "SSSL"){
-	# 	# add also HBIC selected cov and prec
-	# 	hbic_thres <- HBIC_thre(icov = prec.mean, thre = inclusion.fit, n = N, d = P)
-	# 	cutoff <- hbic_thres[[2]][which.min(hbic_thres[[1]])]
-	# 	prec.mean.hbic <- prec.mean * (inclusion.fit > cutoff)
-	# 	prec.mean.inverse.hbic <- solve(prec.mean.hbic)
-	# 	norm <- rbind(norm, get4norm(list(prec.mean.inverse.hbic), corr.true, TRUE))
-	# 	norm2 <- rbind(norm2, get4norm(list(prec.mean.hbic), prec.true, TRUE))
-		
-	# }else{
-	# 	norm <- rbind(norm, NA)
-	# 	norm2 <- rbind(norm2, NA)
-	# }
-
-	# rownames(norm)[dim(norm)[1]] <- "Bayesian (HBIC)"
-	# rownames(norm2)[dim(norm2)[1]] <- "Bayesian (HBIC)"
-	
-	
 	allout[count, , 1:4] <- norm
 	allout[count, , 5:8] <- norm2
 	for(i in 1: length(aucs)){
 		allout[count, i, 9:10] <- c(aucs[[i]]$AUC, max(aucs[[i]]$F1))
-	}
-	if(typecov == "SSSL"){
-		allout[count, length(aucs)-1, 9:10] <- c(auc.sssl, f1.sssl)
 	}
 
 	allout[count, length(aucs), 9:10] <- c(auc.thres, max(f1.thres, na.rm=T))
@@ -215,6 +162,6 @@ for(rep in seeds[1:nrep]){
 	processed <- processed + 1
 	print(paste0("Total number of sims processed: ", processed))
 	print(paste0("Avg number of edges: ", totalEdge/processed))
-	save(allout, file = paste0("rdaVA/201802/sim/",typecov, pre, miss.rate, "metrics-0309.rda"))			
+	save(allout, file = paste0("../data/processed/",typecov, pre, miss.rate, "metrics1.rda"))			
 }
 

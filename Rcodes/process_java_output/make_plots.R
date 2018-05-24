@@ -1,4 +1,4 @@
-source("FanEstimator.r")
+source("functions.r")
 csmfacc <- function(csmf, csmf.fit){ 1-sum(abs(csmf.fit - csmf))/2/(1-min(csmf))}
 evalNBprob <- function(probbase, training, testing, G, csmf = NULL, csmf.true, samepop=TRUE){
 	is.testing <- 1:dim(testing)[1]
