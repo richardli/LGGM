@@ -55,9 +55,10 @@ public class Latent_classifier extends Latent_model{
         super(Nitr, N, 0, P, G, covType);
     }
     public Latent_classifier(int Nitr, int N, int N_test, int P, int G, String covType){super(Nitr, N, N_test, P, G, covType);}
+    public Latent_classifier(int Nitr, int burnin, int thin, int N,  int N_test, int P, int G, String covType){super(Nitr, burnin, thin, N, N_test, P, G, covType);}
 
     public void findimpossible(double shrink){
-        double threshold = -4.3 / shrink; // todo: change this from hard coidng
+        double threshold = -4.3 / shrink; // todo: change this from hard coding
         impossible = new boolean[this.N][this.G];
         int count1 = 0;
         int count2 = 0;
@@ -606,7 +607,7 @@ public class Latent_classifier extends Latent_model{
                     out[counter][g] = prob[g] / sum;
                 }
                 counter ++;
-                System.out.print(".");
+                if(counter % 20 == 0) System.out.print(".");
             }
         }
         System.out.println("Finishing resampling membership");
@@ -696,7 +697,7 @@ public class Latent_classifier extends Latent_model{
                     out[counter][g] = zerovec[g] == 0 ? 0 : Math.exp(prob[g] - maxlog - Math.log(expsum));
                 }
                 counter ++;
-                System.out.print(".");
+                if(counter % 20 == 0) System.out.print(".");
             }
         }
         System.out.println("Finishing resampling membership");
@@ -1232,7 +1233,7 @@ public class Latent_classifier extends Latent_model{
                 model.fit_SSSL_model(seed, update_sparsity,  verbose, update_group, integrate, NB, same_pop,
                         currentdir, currentfile);
                 if(model.savefull){
-                    EvalUtil.save_full(model, currentdir, currentfile, covType, true);
+                    EvalUtil.save_full(model, model.cov_sssl, currentdir, currentfile, covType, true);
                 }
                 EvalUtil.save(model, model.cov_sssl, currentdir, currentfile, covType, true);
 

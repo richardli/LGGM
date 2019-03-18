@@ -45,6 +45,7 @@ public class Latent_model {
     public double[][][] prec_draw;
     public double[][] sd_draw;
     public double[][][] mean_draw;
+    public int[] inclusion_draw;
 
     // field for separating continuous dimensions
     public int P_binary;
@@ -67,6 +68,7 @@ public class Latent_model {
         this.prec_draw = new double[this.Nout][this.P][this.P];
         this.sd_draw = new double[this.Nout][this.P];
         this.mean_draw = new double[this.G][this.Nout][this.P];
+        this.inclusion_draw = new int[this.Nout];
     }
 
     public Latent_model(int Nitr, int burnin, int thin, int N, int P, int G, String covType){
@@ -351,7 +353,7 @@ public class Latent_model {
 
         if (this.data.G > 1) {
             if(savefull){
-                EvalUtil.save_full(this, currentdir, currentfile + "_s1", covType, true);
+                EvalUtil.save_full(this, this.cov_sssl, currentdir, currentfile + "_s1", covType, true);
             }
             EvalUtil.save(this, this.cov_sssl, currentdir, currentfile + "_s1", covType, true);
 
@@ -480,14 +482,14 @@ public class Latent_model {
     public static void main(String[] args) throws IOException {
 
         String directory = "/Users/zehangli/";
-        String pre = "3test";
+        String pre = "2test0313";
         int N = 200;
         int P = 50;
         double miss = 0.2;
-        int Nrep = 1;
+        int Nrep = 10;
         String covType = "SSSL";
         String covTypeSim = "Random";
-        int Nitr = 2000;
+        int Nitr = 1000;
         double sd0 = 1;
         int seed = 123;
         boolean informative = false;
@@ -496,6 +498,11 @@ public class Latent_model {
         boolean transform = true;
         int nContinuous =10;
         int rep0 = 0;
+        boolean save_full = true;
+        int burnin = 0;
+        int thin = 1;
+        boolean random_start = false;
+
 
         if(args.length > 0){
             int counter = 0;
@@ -524,6 +531,22 @@ public class Latent_model {
             if(rep0 == 0){
                 Nrep = 1;
             }
+            save_full = Boolean.parseBoolean(args[counter]); counter++;
+            if(args.length > counter) {
+                burnin = Integer.parseInt(args[counter]); counter++;
+            }else{
+                burnin = (int) (Nitr / 2.0);
+            }
+            if(args.length > counter) {
+                thin = Integer.parseInt(args[counter]); counter++;
+            }else{
+                thin = Nitr > 5000 ? 10 : 1;
+            }
+            if(args.length > counter) {
+                random_start = Boolean.parseBoolean(args[counter]); counter++;
+            }else{
+                random_start = false;
+            }
         }
 
 
@@ -548,7 +571,7 @@ public class Latent_model {
             String currentdir = directory + expriment_name + "/";
             String currentfile =  expriment_name + "Rep" + rep;
 
-            Latent_model model = new Latent_model(Nitr, N, 0, P, G, covType);
+            Latent_model model = new Latent_model(Nitr,burnin, thin, N,0, P, G, covType);
             model.data.init_adaptive(sd0, a_sd0, b_sd0, adaptive, power);
             Simulator simulator = new Simulator(N, P, G);
             simulator.simCov(P, c, multiplier, seed, covTypeSim);
@@ -562,12 +585,20 @@ public class Latent_model {
             if(covType.equals("PX")){
                 model.cov_px.initial_hotstart(model, 0.1);
                 model.fit_PX_model(seed, verbose, false, false, false, false);
-                EvalUtil.save(model, model.cov_px, currentdir, currentfile, covType, false);
-
+                if(save_full){
+                    EvalUtil.save_full(model, model.cov_px, currentdir, currentfile, covType, false);
+                }else{
+                    EvalUtil.save(model, model.cov_px, currentdir, currentfile, covType, false);
+                }
             }else if(covType.equals("SSSL")){
-                model.cov_sssl.initial_hotstart(model, 0.1);
+                model.cov_sssl.initial_hotstart(model, 0.1, random_start, seed);
                 model.fit_SSSL_model(seed, update_sparsity,  verbose, false, false, false, false, currentdir, currentfile);
-                EvalUtil.save(model, model.cov_sssl, currentdir, currentfile, covType, false);
+                if(save_full){
+                    EvalUtil.save_full(model, model.cov_sssl, currentdir, currentfile, covType, false);
+                }else{
+                    EvalUtil.save(model, model.cov_sssl, currentdir, currentfile, covType, false);
+                }
+
 
             }else if(covType.equals("GLASSO")){
 //                model.fit_Glasso_model(seed, false);

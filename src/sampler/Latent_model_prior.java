@@ -158,7 +158,7 @@ public class Latent_model_prior extends Latent_model{
                         simulator.prec, simulator.cov, simulator.mean);
                 boolean update_structure = true;
                 model.Sample_SSSL_prior(seed, 0.05, v1, lambda, simulator.prec, 1, update_structure);
-                EvalUtil.save_full(model, currentdir, currentfile, covType, false);
+                EvalUtil.save_full(model, model.cov_sssl, currentdir, currentfile, covType, false);
                 EvalUtil.save(model, model.cov_sssl, currentdir, currentfile, covType, false);
             }
         }

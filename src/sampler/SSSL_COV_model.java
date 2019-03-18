@@ -32,7 +32,7 @@ public class SSSL_COV_model extends COV_model{
     double[][] alpha;
     double[][] beta;
     double[][] prob;
-    int[][] inclusion;
+    public int[][] inclusion;
 
     // index set for removing one
     int[][] left_index;
@@ -130,7 +130,7 @@ public class SSSL_COV_model extends COV_model{
         /** resample expanded mean vector **/
         data.resample_expanded(data.sd0, this.prec, this.tau, rngEngine, verbose, update_with_test);
 
-        RealMatrix S = data.computeWprodbyGroup(update_with_test, this.tau);
+        RealMatrix S = data.computeWprodbyGroup(update_with_test, this.tau, verbose);
         Collections.shuffle(this.onetop);
         for(int j : this.onetop){
             /** resample Precision by SSSL **/

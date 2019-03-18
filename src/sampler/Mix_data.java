@@ -511,7 +511,7 @@ public class Mix_data {
                 for(int j = 0; j < this.P; j++){
                     tmp_mean += this.latent[i][j] / (this.N * this.P + 0.0);
                     tmp_min = Math.min(tmp_min, this.latent[i][j]);
-                    tmp_max = Math.min(tmp_max, this.latent[i][j]);
+                    tmp_max = Math.max(tmp_max, this.latent[i][j]);
                 }
             }
             System.out.printf("Initial latent variables : mean: %.4f, min: %.4f, max: %.4f\n",
@@ -537,11 +537,13 @@ public class Mix_data {
     }
 
     public RealMatrix computeWprodbyGroup(boolean update_with_test, double[] tau){
+        return(computeWprodbyGroup(update_with_test, tau, false));
+    }
+    public RealMatrix computeWprodbyGroup(boolean update_with_test, double[] tau, boolean verbose){
         RealMatrix Wprodsum = new Array2DRowRealMatrix(new double[this.P][this.P]);
 
         for(int i = 0; i < this.G; i++){
             // do this for each group
-            // covariance computed this way with bias-correction = true divides by N-1
             if(this.groupcount[i] <= 0){continue;}
 
             double[][] expanded_sub = new double[groupcount[i]][P];
@@ -557,6 +559,16 @@ public class Mix_data {
             RealMatrix expanded_sub_mat = new Array2DRowRealMatrix(expanded_sub);
             RealMatrix Wprod = expanded_sub_mat.preMultiply(expanded_sub_mat.transpose());
             Wprodsum = Wprodsum.add(Wprod);
+        }
+        if(verbose){
+            double tmp_mean = 0;
+            double tmp_max = 0;
+            for(int i = 0; i < this.P; i++){
+                    tmp_mean += Wprodsum.getEntry(i, i)/(this.P+0.0);
+                    tmp_max = Math.max(tmp_max,  Wprodsum.getEntry(i, i));
+            }
+            System.out.printf("S matrix : mean: %.4f, max: %.4f\n",
+                    tmp_mean, tmp_max);
         }
         return(Wprodsum);
     }

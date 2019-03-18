@@ -3,8 +3,13 @@ package sampler;
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.linear.LUDecomposition;
 import org.apache.commons.math3.linear.RealMatrix;
+import util.MathUtil;
 
 import java.io.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
 
 /**
  * Created by zehangli on 5/21/16.
@@ -79,8 +84,12 @@ public class COV_model {
 //       this.updatePrecFromCov();
 //       this.updateAllFromPrec();
     }
-
-    public void initial_hotstart(Latent_model model, double add){
+    public void initial_hotstart(Latent_model model, double add) {
+        initial_hotstart(model, add, false, 0);
+    }
+    public void initial_hotstart(Latent_model model, double add, boolean random, int seed){
+        List<Integer> onetop =  new ArrayList<>();
+        for(int i = 0; i < model.P; i++) onetop.add(i);
         this.cov = this.cov.scalarMultiply(add);
         int nn = model.N;
         if(model.N > model.N_test) nn = model.N - model.N_test;
@@ -88,20 +97,35 @@ public class COV_model {
         double[][] latents = new double[nn][P];
 
         int index = 0;
-        for(int i = 0; i < model.N; i++){
-            int gtmp = model.data.membership[i];
-            if(model.data.membership[i] == model.data.G ){
-                if(model.N > model.N_test){
-                    continue;
-                }else{
-                    gtmp = model.data.membership_test[i];
+        if(random){
+            Random rnd = new Random(seed);
+            for(int i = 0; i < model.N; i++) {
+                int gtmp = model.data.membership[i];
+                if (model.data.membership[i] == model.data.G) {
+                    if (model.N > model.N_test) continue;
                 }
+                for (int j = 0; j < P; j++) {
+                    latents[index][j] = model.data.latent[index][j] + rnd.nextGaussian();
+                }
+                index++;
             }
-            for(int j = 0; j < P; j++){
-                latents[index][j] = model.data.latent[index][j] - model.data.Delta[gtmp][j];
+        }else{
+            for(int i = 0; i < model.N; i++){
+                int gtmp = model.data.membership[i];
+                if(model.data.membership[i] == model.data.G ){
+                    if(model.N > model.N_test){
+                        continue;
+                    }else{
+                        gtmp = model.data.membership_test[i];
+                    }
+                }
+                for(int j = 0; j < P; j++){
+                    latents[index][j] = model.data.latent[index][j] - model.data.Delta[gtmp][j];
+                }
+                index++;
             }
-            index++;
         }
+
         RealMatrix crossprod = new Array2DRowRealMatrix(latents);
         crossprod = crossprod.preMultiply(crossprod.transpose()).scalarMultiply(1/(nn+0.0));
 //        for(int j = 0; j < this.P; j++){
@@ -121,7 +145,11 @@ public class COV_model {
         updateCorrFromCov();
         updateInvCorrFromCorr();
         print_sim_message();
-        System.out.println("Initialize to empirical correlation matrix");
+        if(random){
+            System.out.println("Initialize to random correlation matrix");
+        }else{
+            System.out.println("Initialize to empirical correlation matrix");
+        }
     }
 
 

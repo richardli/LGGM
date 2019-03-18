@@ -88,6 +88,12 @@ public class EvalUtil {
                 model.corr_draw[nitr][j][jj] = model.cov_sssl.corr_by_tau.getEntry(j, jj);
             }
         }
+        model.inclusion_draw[nitr] = 0;
+        for(int i = 0; i < model.P-1; i++){
+            for(int j = i; j < model.P; j++){
+                model.inclusion_draw[nitr] += model.cov_sssl.inclusion[i][j];
+            }
+        }
     }
 
 
@@ -253,17 +259,18 @@ public class EvalUtil {
     }
 
 
-    public static void save_full(Latent_model model, String directory, String pre, String covType, boolean
-            update_group) throws
+    public static void save_full(Latent_model model, COV_model cov_model, String directory, String pre, String covType,
+                            boolean update_group) throws
             IOException {
         int G = model.G;
         String file_corr = directory + pre + "_corr_out.txt";
-        String file_prec = directory + pre + "_prec_out.txt";
+        String file_corr2 = directory + pre + "_corr_out_core.txt";
+        String file_prec = directory + pre + "_invcorr_out.txt";
         String file_mean = directory + pre + "_mean_out.txt";
 
         File theDir = new File(directory);
 
-// if the directory does not exist, create it
+        // if the directory does not exist, create it
         if (!theDir.exists()) {
             System.out.println("\ncreating directory: " + directory);
             boolean result = false;
@@ -282,35 +289,38 @@ public class EvalUtil {
         BufferedWriter bw_prec = new BufferedWriter(new FileWriter(file_prec));
         BufferedWriter bw_corr = new BufferedWriter(new FileWriter(file_corr));
         BufferedWriter bw_mean = new BufferedWriter(new FileWriter(file_mean));
+        int P = model.prec_draw[0].length;
 
-        for(int nitr = 0; nitr < model.corr_draw.length; nitr ++){
-            for(int g = 0; g < G; g++){
-                bw_mean.write(Arrays.toString(model.mean_draw[g][nitr]).replace("[", "").replace("]", "\n"));
-            }
-            for(int j = 0; j < model.P; j++){
-                bw_prec.write(Arrays.toString(model.prec_draw[nitr][j]).replace("[", "").replace("]", "\n"));
-                bw_corr.write(Arrays.toString(model.corr_draw[nitr][j]).replace("[", "").replace("]", "\n"));
+        // remove first
+        for(int nitr = 1; nitr < model.corr_draw.length; nitr ++) {
+            for (int g = 0; g < G; g++) {
+                    bw_mean.write(Arrays.toString(model.mean_draw[g][nitr]).replace("[", "").replace("]", "\n"));
             }
         }
+
+        // remove first
+        for(int nitr = 1; nitr < model.corr_draw.length; nitr ++) {
+            for (int j = 0; j < P; j++) {
+                bw_corr.write(Arrays.toString(model.corr_draw[nitr][j]).replace("[", "").replace("]", "\n"));
+                bw_prec.write(Arrays.toString(model.prec_draw[nitr][j]).replace("[", "").replace("]", "\n"));
+
+            }
+        }
+
         bw_prec.close();
         bw_corr.close();
         bw_mean.close();
 
-
-//        if(covType.equals("SSSL")){
-//            String file_inclusion = directory + pre + "_inclusion_out.txt";
-//            BufferedWriter bw_inclusion = new BufferedWriter(new FileWriter(file_inclusion));
-//            for(int j = 0; j < model.P; j++){
-//                bw_inclusion.write(Arrays.toString(model.cov_sssl.inclusion_ave[j]).replace("[", "").replace("]", "\n"));
-//            }
-//            bw_inclusion.close();
-//        }
-        if(covType.equals("GLASSO")){
+        if(covType.equals("SSSL")){
             String file_inclusion = directory + pre + "_inclusion_out.txt";
             BufferedWriter bw_inclusion = new BufferedWriter(new FileWriter(file_inclusion));
             for(int j = 0; j < model.P; j++){
-                bw_inclusion.write(Arrays.toString(model.cov_glasso.inclusion_ave[j]).replace("[", "").replace("]", "\n"));
+                bw_inclusion.write(Arrays.toString(model.cov_sssl.inclusion_ave[j]).replace("[", "").replace("]", "\n"));
             }
+            bw_inclusion.close();
+            file_inclusion = directory + pre + "_inclusion_iteration_out.txt";
+            bw_inclusion = new BufferedWriter(new FileWriter(file_inclusion));
+            bw_inclusion.write(Arrays.toString(model.inclusion_draw).replace("[", "").replace("]", "\n"));
             bw_inclusion.close();
         }
 
@@ -329,17 +339,113 @@ public class EvalUtil {
             }
             bw_prob.close();
 
-            String file_assignment = directory + pre + "_assignment_out.txt";
-            BufferedWriter bw_inclusion = new BufferedWriter(new FileWriter(file_assignment));
-            for(int j = 0; j < model.post_prob_draw.length; j++){
-                for(int k = 0; k < model.post_prob_draw[j].length; k++){
-                    bw_inclusion.write(Arrays.toString(model.post_prob_draw[j][k]).replace("[", "").replace("]", "\n"));
+            double[][] prob_mean = new double[model.post_prob_draw.length][model.post_prob_draw[0][0].length];
+            double NitrNow = model.post_prob_draw[0].length - 1.0;
+            for(int i = 0; i < model.post_prob_draw.length; i++){
+                // remove the first one
+                for(int j = 1; j < model.post_prob_draw[0].length; j++){
+                    for(int k = 0; k < model.post_prob_draw[0][0].length; k++){
+                        prob_mean[i][k] += model.post_prob_draw[i][j][k] / NitrNow;
+                    }
                 }
+            }
+            String file_assignment = directory + pre + "_assignment_out_mean.txt";
+            BufferedWriter bw_inclusion = new BufferedWriter(new FileWriter(file_assignment));
+            for(int j = 0; j < prob_mean.length; j++){
+                bw_inclusion.write(Arrays.toString(prob_mean[j]).replace("[", "").replace("]", "\n"));
             }
             bw_inclusion.close();
         }
 
     }
+//
+//    public static void save_full(Latent_model model, String directory, String pre, String covType, boolean
+//            update_group) throws
+//            IOException {
+//        int G = model.G;
+//        String file_corr = directory + pre + "_corr_out.txt";
+//        String file_prec = directory + pre + "_prec_out.txt";
+//        String file_mean = directory + pre + "_mean_out.txt";
+//
+//        File theDir = new File(directory);
+//
+//// if the directory does not exist, create it
+//        if (!theDir.exists()) {
+//            System.out.println("\ncreating directory: " + directory);
+//            boolean result = false;
+//            try{
+//                theDir.mkdir();
+//                result = true;
+//            }
+//            catch(SecurityException se){
+//                System.out.println("Cannot create directory");
+//            }
+//            if(result) {
+//                System.out.println("DIR created");
+//            }
+//        }
+//
+//        BufferedWriter bw_prec = new BufferedWriter(new FileWriter(file_prec));
+//        BufferedWriter bw_corr = new BufferedWriter(new FileWriter(file_corr));
+//        BufferedWriter bw_mean = new BufferedWriter(new FileWriter(file_mean));
+//
+//        for(int nitr = 0; nitr < model.corr_draw.length; nitr ++){
+//            for(int g = 0; g < G; g++){
+//                bw_mean.write(Arrays.toString(model.mean_draw[g][nitr]).replace("[", "").replace("]", "\n"));
+//            }
+//            for(int j = 0; j < model.P; j++){
+//                bw_prec.write(Arrays.toString(model.prec_draw[nitr][j]).replace("[", "").replace("]", "\n"));
+//                bw_corr.write(Arrays.toString(model.corr_draw[nitr][j]).replace("[", "").replace("]", "\n"));
+//            }
+//        }
+//        bw_prec.close();
+//        bw_corr.close();
+//        bw_mean.close();
+//
+//
+////        if(covType.equals("SSSL")){
+////            String file_inclusion = directory + pre + "_inclusion_out.txt";
+////            BufferedWriter bw_inclusion = new BufferedWriter(new FileWriter(file_inclusion));
+////            for(int j = 0; j < model.P; j++){
+////                bw_inclusion.write(Arrays.toString(model.cov_sssl.inclusion_ave[j]).replace("[", "").replace("]", "\n"));
+////            }
+////            bw_inclusion.close();
+////        }
+//        if(covType.equals("GLASSO")){
+//            String file_inclusion = directory + pre + "_inclusion_out.txt";
+//            BufferedWriter bw_inclusion = new BufferedWriter(new FileWriter(file_inclusion));
+//            for(int j = 0; j < model.P; j++){
+//                bw_inclusion.write(Arrays.toString(model.cov_glasso.inclusion_ave[j]).replace("[", "").replace("]", "\n"));
+//            }
+//            bw_inclusion.close();
+//        }
+//
+//        if(update_group){
+//            if(model.true_prob != null){
+//                String file_prob_true = directory + pre + "_prob_true.txt";
+//                BufferedWriter bw_prob_true = new BufferedWriter(new FileWriter(file_prob_true));
+//                bw_prob_true.write(Arrays.toString(model.true_prob).replace("[", "").replace("]", "\n"));
+//                bw_prob_true.close();
+//            }
+//
+//            String file_prob = directory + pre + "_prob_out.txt";
+//            BufferedWriter bw_prob = new BufferedWriter(new FileWriter(file_prob));
+//            for(int j = 0; j < model.post_prob_pop.length; j++){
+//                bw_prob.write(Arrays.toString(model.post_prob_pop[j]).replace("[", "").replace("]", "\n"));
+//            }
+//            bw_prob.close();
+//
+//            String file_assignment = directory + pre + "_assignment_out.txt";
+//            BufferedWriter bw_inclusion = new BufferedWriter(new FileWriter(file_assignment));
+//            for(int j = 0; j < model.post_prob_draw.length; j++){
+//                for(int k = 0; k < model.post_prob_draw[j].length; k++){
+//                    bw_inclusion.write(Arrays.toString(model.post_prob_draw[j][k]).replace("[", "").replace("]", "\n"));
+//                }
+//            }
+//            bw_inclusion.close();
+//        }
+//
+//    }
 
     public static void savetruth(Latent_model model, String directory, String pre, String covType, double[][] prec_true, double[][] corr_true, double[][] mean_true) throws
             IOException {

@@ -32,88 +32,136 @@ public class ProcessVAdata {
     public static void main(String[] args) throws IOException {
 
         ProcessVAdata vadata = new ProcessVAdata();
-        int counter = 0;
-        String prior = args[counter];
-        counter++;
-        String train = args[counter];
-        counter++;
-        String test = args[counter];
-        counter++;
-        String directory = args[counter];
-        counter++;
-        int Nitr = Integer.parseInt(args[counter]);
-        counter++;
-        String name = args[counter];
-        counter++;
-        String type = args[counter];
-        counter++;
-        double sd0 = Double.parseDouble(args[counter]);
-        counter++;
-        boolean NB = Boolean.parseBoolean(args[counter]);
-        counter++;
+        String prior = "expnew/typeK3";
+        String train = "expnew/K_train0";
+        String test = "expnew/K_test0";
+        String directory = "/Users/zehangli/";
+        int Nitr = 3000;
+        String name = "newK9-0-0-20F";
+        String type = "SSSL";
+        double sd0 = 0.5;
+        boolean NB = false;
         boolean integrate = false;
-        if (args.length > counter) integrate = Boolean.parseBoolean(args[counter]);
-        counter++;
-        int PP = 0;
-        if (args.length > counter) PP = Integer.parseInt(args[counter]);
-        counter++;
-        int seed = 1;
-        if (args.length > counter) seed = Integer.parseInt(args[counter]);
-        counter++;
-        int Ntrain = Integer.MAX_VALUE;
-        if (args.length > counter) Ntrain = Integer.parseInt(args[counter]);
-        counter++;
+        int PP = 92;
+        int seed = 54321;
+        int Ntrain = 10000;
         boolean update_with_test = true;
-        if (args.length > counter) update_with_test = Boolean.parseBoolean(args[counter]);
-        counter++;
-        boolean adaptive = false;
-        if (args.length > counter) adaptive = Boolean.parseBoolean(args[counter]);
-        counter++;
-        double v0 = 0.001;
-        double v1 = 10;
-        double lambda = 1;
-        double prob = 1/(PP+0.0);
-        if (args.length > counter) v0 = Double.parseDouble(args[counter]);
-        counter++;
-        if (args.length > counter) v1 = Double.parseDouble(args[counter]);
-        counter++;
-        if (args.length > counter) lambda = Double.parseDouble(args[counter]);
-        counter++;
-        if (args.length > counter) prob = Double.parseDouble(args[counter]);
-        counter++;
+        boolean adaptive = true;
+        double v0 = 0.01;
+        double v1 = 1;
+        double lambda = 10;
+        double prob = 0.0001;
         boolean is_this_classification_job = true;
-        if (args.length > counter) is_this_classification_job = Boolean.parseBoolean(args[counter]);counter++;
-        boolean same_pop = true;
-        if (args.length > counter) same_pop = Boolean.parseBoolean(args[counter]);counter++;
-        boolean anneal = true;
-        if (args.length > counter) anneal = Boolean.parseBoolean(args[counter]);counter++;
-        String nopenalty_file = "nofile";
-        if (args.length > counter) nopenalty_file = args[counter];counter++;
+        boolean same_pop = false;
+        boolean anneal = false;
+        String nopenalty_file = "expnew/typeK_structure";
         double shrink = 1;
-        if(args.length > counter) shrink = Double.parseDouble(args[counter]);counter++;
         double var0 = 1;
-        if(args.length > counter) var0 = Double.parseDouble(args[counter]);counter++;
-        String csmffile = "";
-        if(args.length > counter) csmffile = args[counter]; counter++;
-        boolean Dirichlet = false;
-        if(args.length > counter) Dirichlet = Boolean.parseBoolean(args[counter]); counter++;
-        boolean savefull = false;
-        if(args.length > counter) savefull = Boolean.parseBoolean(args[counter]); counter++;
+        String csmffile = "nofile";
+        boolean Dirichlet = true;
+        boolean savefull = true;
         String impossiblelist = "nofile";
-        if(args.length > counter) impossiblelist = args[counter]; counter++;
-
         boolean hotstart = false;
-        if (args.length > counter) hotstart = Boolean.parseBoolean(args[counter]);counter++;
         double a_sd0 = 0.001;
         double b_sd0 = 0.001;
-        if (args.length > counter) a_sd0 = Double.parseDouble(args[counter]);
-        counter++;
-        if (args.length > counter) b_sd0 = Double.parseDouble(args[counter]);
-        counter++;
+        int burnin = (int) (Nitr / 2.0);
+        int thin = 1;
+
+
+        if(args.length > 0) {
+            int counter = 0;
+             prior = args[counter];
+            counter++;
+             train = args[counter];
+            counter++;
+             test = args[counter];
+            counter++;
+             directory = args[counter];
+            counter++;
+             Nitr = Integer.parseInt(args[counter]);
+            counter++;
+             name = args[counter];
+            counter++;
+             type = args[counter];
+            counter++;
+             sd0 = Double.parseDouble(args[counter]);
+            counter++;
+             NB = Boolean.parseBoolean(args[counter]);
+            counter++;
+             integrate = false;
+            if (args.length > counter) integrate = Boolean.parseBoolean(args[counter]);
+            counter++;
+             PP = 0;
+            if (args.length > counter) PP = Integer.parseInt(args[counter]);
+            counter++;
+             seed = 1;
+            if (args.length > counter) seed = Integer.parseInt(args[counter]);
+            counter++;
+             Ntrain = Integer.MAX_VALUE;
+            if (args.length > counter) Ntrain = Integer.parseInt(args[counter]);
+            counter++;
+             update_with_test = true;
+            if (args.length > counter) update_with_test = Boolean.parseBoolean(args[counter]);
+            counter++;
+             adaptive = false;
+            if (args.length > counter) adaptive = Boolean.parseBoolean(args[counter]);
+            counter++;
+             v0 = 0.001;
+             v1 = 10;
+             lambda = 1;
+             prob = 1 / (PP + 0.0);
+            if (args.length > counter) v0 = Double.parseDouble(args[counter]);
+            counter++;
+            if (args.length > counter) v1 = Double.parseDouble(args[counter]);
+            counter++;
+            if (args.length > counter) lambda = Double.parseDouble(args[counter]);
+            counter++;
+            if (args.length > counter) prob = Double.parseDouble(args[counter]);
+            counter++;
+             is_this_classification_job = true;
+            if (args.length > counter) is_this_classification_job = Boolean.parseBoolean(args[counter]);
+            counter++;
+             same_pop = true;
+            if (args.length > counter) same_pop = Boolean.parseBoolean(args[counter]);
+            counter++;
+             anneal = true;
+            if (args.length > counter) anneal = Boolean.parseBoolean(args[counter]);
+            counter++;
+             nopenalty_file = "nofile";
+            if (args.length > counter) nopenalty_file = args[counter];
+            counter++;
+             shrink = 1;
+            if (args.length > counter) shrink = Double.parseDouble(args[counter]);
+            counter++;
+             var0 = 1;
+            if (args.length > counter) var0 = Double.parseDouble(args[counter]);
+            counter++;
+            csmffile = "";
+            if (args.length > counter) csmffile = args[counter];
+            counter++;
+             Dirichlet = false;
+            if (args.length > counter) Dirichlet = Boolean.parseBoolean(args[counter]);
+            counter++;
+             savefull = false;
+            if (args.length > counter) savefull = Boolean.parseBoolean(args[counter]);
+            counter++;
+            if (args.length > counter) burnin = Integer.parseInt(args[counter]);
+            counter++;
+            if (args.length > counter) thin = Integer.parseInt(args[counter]);
+            counter++;
+             impossiblelist = "nofile";
+            if (args.length > counter) impossiblelist = args[counter];
+            counter++;
+            if (args.length > counter) hotstart = Boolean.parseBoolean(args[counter]);
+            counter++;
+            if (args.length > counter) a_sd0 = Double.parseDouble(args[counter]);
+            counter++;
+            if (args.length > counter) b_sd0 = Double.parseDouble(args[counter]);
+            counter++;
+            System.out.println(Arrays.toString(args));
+        }
 
         int maxTest = Integer.MAX_VALUE;
-        System.out.println(Arrays.toString(args));
-
         // if this is not to test classification, use the test set as if labels are known.
         if (!is_this_classification_job) {
             maxTest = 0;
@@ -122,8 +170,8 @@ public class ProcessVAdata {
         }
 
         String dir0 = "../data/";
-        if(directory.equals("/Users/zehangli/")) dir0 = "/Users/zehangli/Bitbucket-repos/LatentGaussian/data/";
-        if(directory.equals("/Users/zehangli/Bitbucket-repos/LatentGaussian/data/test")) dir0 = "/Users/zehangli/Bitbucket-repos/LatentGaussian/data/";
+        if(directory.equals("/Users/zehangli/")) dir0 = "/Users/zehangli/Bitbucket/LatentGaussian/data/";
+//        if(directory.equals("/Users/zehangli/Bitbucket-repos/LatentGaussian/data/test")) dir0 = "/Users/zehangli/Bitbucket-repos/LatentGaussian/data/";
 
         vadata.addData(dir0 + prior + "_delta.csv", dir0 + train + ".csv",PP, Ntrain, seed, Integer.MAX_VALUE);
         vadata.addTestData(dir0 + test + ".csv", PP, maxTest);
@@ -154,7 +202,7 @@ public class ProcessVAdata {
         String currentdir = directory + expriment_name + "/";
         String currentfile = expriment_name;
 
-        Latent_classifier model = new Latent_classifier(Nitr, N, N_test, P, G, type);
+        Latent_classifier model = new Latent_classifier(Nitr, burnin, thin, N, N_test, P, G, type);
         model.Dirichlet = Dirichlet;
 
 
@@ -175,7 +223,7 @@ public class ProcessVAdata {
             model.data.type[i] = 1;
         }
         double DirichletAlpha = model.data.N;//10000;//(model.data.N - model.data.N_test) / 2.0;
-        if(!informative_prior) DirichletAlpha = 1.0;
+        if(!informative_prior) DirichletAlpha = 10.0;
 
         if(csmffile.equals("expnew/InterVAcsmf")){
             double[] csmf = readPriorCSMF(dir0 + csmffile + ".csv");
@@ -299,7 +347,7 @@ public class ProcessVAdata {
             model.fit_SSSL_model(seed, update_sparsity, true, is_this_classification_job, integrate, NB, same_pop,
                     currentdir, currentfile);
             if(model.savefull){
-                EvalUtil.save_full(model, currentdir, currentfile, "SSSL", true);
+                EvalUtil.save_full(model, model.cov_sssl, currentdir, currentfile, "SSSL", true);
             }
             EvalUtil.save(model, model.cov_sssl, currentdir, currentfile, "SSSL", true);
 
