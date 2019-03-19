@@ -57,6 +57,7 @@ public class Latent_model {
     // field used only in classifier method
     public boolean[] test_case;
     public double[][][] post_prob_draw;
+    public double[][] post_prob_draw_mean;
     public double[][] post_prob_pop;
     public boolean update_with_test;
     boolean anneal;
@@ -427,6 +428,7 @@ public class Latent_model {
                 if (this.test_case[i]) {
                     for (int g = 0; g < G; g++) {
                         this.post_prob_draw[g][current_count][i] = test_prob[counter][g];
+                        this.post_prob_draw_mean[g][i] += test_prob[counter][g];
                     }
                     counter++;
                 }

@@ -114,8 +114,7 @@ public class SSSL_COV_model extends COV_model{
                               int[] cont_indices,
                               double[][] penalty_mat) {
         /** resample latent variable within Mix_data **/
-        data.resample_Z(rand, rngN, rngE, data.Delta,
-                this.corr_by_tau, verbose);
+        data.resample_Z(rand, rngN, rngE, data.Delta, this.corr_by_tau, verbose);
 
         /** resample marginal variance for continuous variables **/
         data.resample_tau(binary_indices, cont_indices, this);
@@ -201,20 +200,13 @@ public class SSSL_COV_model extends COV_model{
                               int Nitr,
                               boolean postselection) {
         double temp = 1;
-//        if(itr > 0 & itr < Nitr/2 & model.anneal) temp = 0.1 + Math.sqrt(itr+1.0)/Math.sqrt(Nitr/2.0)* 0.9;
         if(itr > 0 & itr < Nitr/2 & model.anneal) temp = 0.5 + (itr+1.0)/(Nitr/2.0)* 0.5;
-        double[][] testprob = model.update_group( rand, rngG, rngN, rngE, integrate, NB, same_pop, temp, true);
-//        double[][] testprob = new double[1][1];
-//        if(itr == 0 | itr % 10 != 0){
-//            testprob = model.update_group( rand, rngG, rngN, rngE, integrate, NB, same_pop,
-//                    temp, true);
-//        }else{
-//            testprob = model.update_group_marginal( rand, rngG, rngN, rngE, integrate, NB, same_pop,
-//                    temp, true);
-//        }
+//        double[][] testprob = model.update_group( rand, rngG, rngN, rngE, integrate, NB, same_pop, temp, true);
+//        data.resample_Z(rand, rngN, rngE, data.Delta, this.corr_by_tau, verbose);
+
 
         /** resample latent variable within Mix_data **/
-        data.resample_Z(rand, rngN, rngE, data.Delta, this.corr_by_tau, verbose);
+        double[][] testprob = data.resample_Z_monte(rand, rngN, rngE, data.Delta, this.corr_by_tau, verbose, 50, (Latent_classifier) model, true, rngG, same_pop, temp);
 
         data.update_groupcounts(model.update_with_test);
 

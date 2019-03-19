@@ -241,7 +241,7 @@ public class Mix_data {
             // so 2/invcorr[i, i] is the scale of Gamma,
             // so  invcorr[i, i]/2 is the rate of Gamma
             this.d[i] = 1 / rngG.nextDouble((this.P + 1.0)/2.0,
-                                             invcorr.getEntry(i, i)/2.0);
+                    invcorr.getEntry(i, i)/2.0);
             this.d[i] = Math.sqrt(this.d[i]);
 //            if(this.d[i] > 5){
 //                System.out.println("Careful large expansion.");
@@ -366,29 +366,46 @@ public class Mix_data {
      * @param Sigma P by P matrix of Covariance of the latent variables
      * @param verbose
      */
-
     public void resample_Z(Random rand, NormalDistribution rngN, Exponential rngE,
-                           double[][] Mean, RealMatrix Sigma, boolean verbose){
-        double tmp_max = 0;
-        double tmp_min = Double.MAX_VALUE;
-        double tmp_mean = 0;
-        double maxvalue = 5;//Double.MAX_VALUE;
-
+                           double[][] Mean, RealMatrix Sigma, boolean verbose) {
 
         // calculate list of inverse matrices Sigma[-j, -j] first
-        HashMap<Integer, RealMatrix> Sinv_times_Sigma_j_mj = new HashMap<>();
+//        HashMap<Integer, RealMatrix> Sinv_times_Sigma_j_mj = new HashMap<>();
+//        HashMap<Integer, RealMatrix> Sigma_j_mj = new HashMap<>();
+//        for (int j = 0; j < this.P; j++) {
+//            RealMatrix temp = MathUtil.colRemove(Sigma.getRowMatrix(j), j);
+//            Sigma_j_mj.put(j, temp);
+//            RealMatrix subSigma = MathUtil.subRemove(Sigma, j);
+//            Sinv_times_Sigma_j_mj.put(j, new LUDecomposition(subSigma).getSolver().getInverse().preMultiply(temp));
+//        }
+        // calculate list of inverse matrices Sigma[-j, -j] first
+        RealMatrix Sinv_times_Sigma_j_mj = new Array2DRowRealMatrix(new double[this.P][this.P-1]);
         HashMap<Integer, RealMatrix> Sigma_j_mj = new HashMap<>();
+        HashMap<Integer, Double> Sigma_j_mj_Siv_Sigma_j_mj = new HashMap<>();
         for(int j = 0; j < this.P; j++){
-            RealMatrix temp = MathUtil.colRemove(Sigma.getRowMatrix(j), j);
-            Sigma_j_mj.put(j, temp);
+            RealMatrix temp0 = MathUtil.colRemove(Sigma.getRowMatrix(j), j);
+            Sigma_j_mj.put(j, temp0);
             RealMatrix subSigma = MathUtil.subRemove(Sigma, j);
-            Sinv_times_Sigma_j_mj.put(j, new LUDecomposition(subSigma).getSolver().getInverse().preMultiply(temp));
+            Sinv_times_Sigma_j_mj.setRow(j, (new LUDecomposition(subSigma).getSolver().getInverse().preMultiply(temp0)).getRow(0));
+            Sigma_j_mj_Siv_Sigma_j_mj.put(j, ((temp0.transpose()).preMultiply(Sinv_times_Sigma_j_mj.getRowMatrix(j))).getEntry(0,0));
         }
+
 
         List<Integer> onetop = new ArrayList<>();
         for (int i = 0; i < this.P; i++) {
             onetop.add(i);
         }
+        resample_Z_internal(rand, rngN, rngE, Mean, Sigma, verbose, onetop, Sinv_times_Sigma_j_mj, Sigma_j_mj);
+    }
+
+    public void resample_Z_internal(Random rand, NormalDistribution rngN, Exponential rngE,
+                                    double[][] Mean, RealMatrix Sigma, boolean verbose, List<Integer> onetop,
+                                    RealMatrix Sinv_times_Sigma_j_mj, HashMap<Integer, RealMatrix> Sigma_j_mj) {
+        double tmp_max = 0;
+        double tmp_min = Double.MAX_VALUE;
+        double tmp_mean = 0;
+        double maxvalue = 5;//Double.MAX_VALUE;
+        // Resample Z
         for(int i = 0; i < this.N; i++){
             //if(this.membership[i] == G) continue;
             int gtmp = this.membership[i];
@@ -411,7 +428,7 @@ public class Mix_data {
                 }
                 RealMatrix diff_mean = new Array2DRowRealMatrix(Z_i_mj_minus_mu_mj);
 
-                RealMatrix pre = Sinv_times_Sigma_j_mj.get(j);  //Sinv.get(j).preMultiply(Sigma_j_mj.get(j));
+                RealMatrix pre = Sinv_times_Sigma_j_mj.getRowMatrix(j);  //Sinv.get(j).preMultiply(Sigma_j_mj.get(j));
                 RealMatrix change_temp = diff_mean.preMultiply(pre);
                 RealMatrix change_temp2 = (Sigma_j_mj.get(j).transpose()).preMultiply(pre);
 
@@ -429,7 +446,7 @@ public class Mix_data {
                         System.out.println(".");
                     }
                     if(Math.abs(this.latent[i][j]) > 6){
-                         //System.out.println(".");
+                        //System.out.println(".");
                     }
                 }else if(type[j] == 0 & this.data[i][j] == -Double.MAX_VALUE){
                     this.latent[i][j] = MathUtil.truncNormal(rand, rngN, rngE,
@@ -450,6 +467,242 @@ public class Mix_data {
             System.out.printf("Finish latent variables re-sample: mean: %.4f, min: %.4f, max: %.4f\n",
                     tmp_mean, tmp_min, tmp_max);
         }
+
+
+    }
+    public double[][] getdomain(Latent_model model, int i, Set<Integer> active, double[][] Mean, double maxvalue){
+        double[][] joint = new double[this.P][2];
+        for(int j = 0; j < this.P; j++){
+            if(model.data.data[i][j] != -Double.MAX_VALUE & model.data.type[j] == 1){
+                joint[j][0] = maxvalue;
+                joint[j][1] = maxvalue * (-1);
+                for(int g : active){
+                    if(this.data[i][j] == 0){
+                        joint[j][0] = maxvalue * (-1);
+                        joint[j][1] = Math.max(joint[j][1],  -Mean[g][j]);
+                    }else{
+                        joint[j][0] = Math.min(joint[j][0],  -Mean[g][j]);
+                        joint[j][1] = maxvalue;
+                    }
+                }
+            }else {
+                joint[j][0] = maxvalue * (-1);
+                joint[j][1] = maxvalue;
+            }
+        }
+        return(joint);
+    }
+    public double[][] resample_Z_monte(Random rand, NormalDistribution rngN, Exponential rngE,
+                                       double[][] Mean, RealMatrix Sigma, boolean verbose, int R,
+                                       Latent_classifier model, boolean update_prob, Gamma rngG,
+                                       boolean same_pop, double temp){
+
+        double[][] out = new double[N_test][G];
+        LUDecomposition solver = new LUDecomposition(Sigma);
+        RealMatrix invcorr = solver.getSolver().getInverse();
+        double det = solver.getDeterminant();
+        double maxvalue = 5;
+
+
+
+        List<Integer> onetop = new ArrayList<>();
+        for (int i = 0; i < this.P; i++) {
+            onetop.add(i);
+        }
+
+        // Resample new membership probabilities
+//        long startTime = System.nanoTime();
+//        long part1=0;
+//        long part2=0;
+//        long part3=0;
+        if (R > 0) {
+            int counter = 0;
+            for(int i = 0; i < this.N_test; i++) {
+                double[] zerovec = new double[this.G];
+                double[] prob = new double[this.G];
+                for (int g = 0; g < this.G; g++) {
+                    if (!model.impossible[i][g]) {
+                        zerovec[g] = 1;
+                    }
+                }
+                if(model.test_case[i]){
+                    // get continuous density
+                    int nonmissing_binary = 0;
+                    int nonmissing_cont = 0;
+                    for(int j=0; j < this.P; j++){
+                        if(model.data.data[i][j] != - Double.MAX_VALUE & model.data.type[j] == 1)  nonmissing_binary++;
+                        if(model.data.data[i][j] != - Double.MAX_VALUE & model.data.type[j] == 0)  nonmissing_cont++;
+                    }
+                    double maxlog = -Double.MAX_VALUE;
+                    if(nonmissing_cont > 0) {
+                        double[] x = new double[nonmissing_cont];
+                        double[][] meansub = new double[this.G][nonmissing_cont];
+                        int[] remain = new int[nonmissing_cont];
+                        int counter1 = 0;
+                        for (int j = 0; j < this.P; j++) {
+                            if (model.data.data[i][j] != -Double.MAX_VALUE & model.data.type[j] == 0) {
+                                x[counter1] = model.data.latent[i][j];
+                                for (int g = 0; g < this.G; g++) meansub[g][counter1] = Mean[g][j];
+                                remain[counter1] = j;
+                                counter1++;
+                            }
+                        }
+                        RealMatrix invcorrsub = new LUDecomposition(Sigma.getSubMatrix(remain, remain)).getSolver().getInverse();
+                        for (int g = 0; g < this.G; g++) {
+                            if (model.impossible[i][g]) {
+                                continue;
+                            }
+                            prob[g] = Math.log(model.post_prob[g]);
+                            double add = MathUtil.multivariate_normal_logdensity(x, meansub[g], invcorrsub, 1);
+                            prob[g] += add;
+                            maxlog = Math.max(prob[g], maxlog);
+                        }
+                    }
+                    if(nonmissing_binary > 0){
+                        double[][] drawmatrix = new double[this.G][R]; // initial with all 0.0, final active changed to 1.0
+
+//                        double[] ztemp = new double[this.P];
+//                        for(int j = 0; j < this.P; j++){
+//                            ztemp[j] = this.latent[i][j] - Mean[this.membership_test[i]][j];
+//                        }
+                        // initial joint domain
+//                        Set<Integer> active = new HashSet<>();
+//                        for(int g = 0; g < this.G; g++){
+//                             boolean remove = false;
+//                              for(int j = 0; j < this.P; j++) {
+//                                  remove = (this.data[i][j] == 0 & ztemp[j] > -Mean[g][j]) | (this.data[i][j] == 1 & ztemp[j] < -Mean[g][j]);
+//                                  if(remove){
+//                                      active.remove(g);
+//                                  }
+//                              }
+//                              if(!remove){
+//                                active.add(g);
+//                              }
+//                        }
+//                        HashMap<Integer, Set<Integer>> outside_coord = new HashMap<>();
+//                        for(int g = 0; g < this.G; g++){
+//                            outside_coord.put(g, new HashSet<>());
+//                        }
+//                        double[][] joint = getdomain(model, i, active, Mean,  maxvalue);
+
+                        int counter1 = 0;
+
+                        for (int rr = 0; rr < R; rr++) {
+                            double[] ztemp = new double[this.P];
+                            Set<Integer> active = new HashSet<>();
+                            for(int g = 0; g < this.G; g++){
+                                active.add(g);
+                            }
+                            HashMap<Integer, Set<Integer>> outside_coord = new HashMap<>();
+                            for(int g = 0; g < this.G; g++){
+                                outside_coord.put(g, new HashSet<>());
+                            }
+                            double[][] joint = getdomain(model, i, active, Mean,  maxvalue);
+
+                            Collections.shuffle(onetop);
+                            int j = onetop.get(0);
+                            ztemp[j] = MathUtil.truncNormal(rand, rngN, rngE,
+                                    0, Math.sqrt(Sigma.getEntry(j, j)), joint[j][0], joint[j][1], maxvalue);
+                            for (int jj = 1; jj < this.P; jj++) {
+                                j = onetop.get(jj);
+                                if(model.data.type[j] == 1) {
+                                    double mean_temp = 0;
+
+                                    RealMatrix Sinv_times_Sigma_j_mj;
+                                    double[] Sigma_j_mj = new double[jj];
+                                    double Sigma_j_mj_Siv_Sigma_j_mj = 0;
+                                    int counter0 = 0;
+                                    for(int jtmp : onetop.subList(0, jj-1)) {
+                                        Sigma_j_mj[counter0] = Sigma.getEntry(j, jtmp);
+                                        counter0++;
+                                    }
+                                    RealMatrix tmp0 = new Array2DRowRealMatrix(Sigma_j_mj);
+                                    int[] subarray = new int[jj];
+                                    for(int jtmp = 0; jtmp < jj; jtmp++) subarray[jtmp] = onetop.get(jtmp);
+                                    RealMatrix subSigma = Sigma.getSubMatrix(subarray, subarray);
+                                    RealMatrix tmp = new LUDecomposition(subSigma).getSolver().getInverse().preMultiply(tmp0.transpose());
+                                    Sinv_times_Sigma_j_mj = tmp.getRowMatrix(0);
+                                    Sigma_j_mj_Siv_Sigma_j_mj = ((tmp0.transpose()).preMultiply(Sinv_times_Sigma_j_mj.transpose())).getEntry(0,0);
+
+//                                    RealMatrix Sinv_times_Sigma_j_mj = new Array2DRowRealMatrix(new double[this.P][this.P-1]);
+//                                    HashMap<Integer, RealMatrix> Sigma_j_mj = new HashMap<>();
+//                                    HashMap<Integer, Double> Sigma_j_mj_Siv_Sigma_j_mj = new HashMap<>();
+//                                    for(int j = 0; j < this.P; j++){
+//                                        RealMatrix temp0 = MathUtil.colRemove(Sigma.getRowMatrix(j), j);
+//                                        Sigma_j_mj.put(j, temp0);
+//                                        RealMatrix subSigma = MathUtil.subRemove(Sigma, j);
+//                                        Sinv_times_Sigma_j_mj.setRow(j, (new LUDecomposition(subSigma).getSolver().getInverse().preMultiply(temp0)).getRow(0));
+//                                        Sigma_j_mj_Siv_Sigma_j_mj.put(j, ((temp0.transpose()).preMultiply(Sinv_times_Sigma_j_mj.getRowMatrix(j))).getEntry(0,0));
+//                                    }
+
+                                    counter0 = 0;
+                                    for(int jtmp : onetop.subList(0, jj-1)){
+                                        mean_temp += ztemp[jtmp] * Sinv_times_Sigma_j_mj.getEntry(0, counter0);
+                                        counter0 ++;
+                                    }
+                                    double sd_temp = Math.sqrt(Sigma.getEntry(j, j) - Sigma_j_mj_Siv_Sigma_j_mj);
+                                    ztemp[j] = MathUtil.truncNormal(rand, rngN, rngE,
+                                            mean_temp, sd_temp, joint[j][0], joint[j][1], maxvalue);
+                                    // remove excluded causes
+                                    boolean changed = false;
+                                    for(int g = 0; g < this.G; g++){
+                                        boolean remove = (this.data[i][j] == 0 & ztemp[j] > -Mean[g][j]) | (this.data[i][j] == 1 & ztemp[j] < -Mean[g][j]);
+                                        if(remove){
+                                            outside_coord.get(g).add(j);
+                                            active.remove(g);
+                                            changed = true;
+                                         // if satisfy the condition
+                                        }else if(outside_coord.get(g).contains(j)){
+                                            outside_coord.get(g).remove(j);
+                                            if(outside_coord.get(g).size() == 0){
+                                                active.add(g);
+                                                changed = true;
+                                            }
+
+                                        }
+                                    }
+                                    if(active.size() == 0){
+                                        System.out.printf("no active set!");
+                                    }
+                                    if(active.size() == 1){
+                                        break;
+                                    }
+                                    if(changed) joint = getdomain(model, i, active, Mean,  maxvalue);
+                                }
+                            }
+                            for(int g : active){
+                                drawmatrix[g][rr] = 1;
+                            }
+                        }
+
+                        for(int g = 0; g < this.G; g++){
+                            double tmp = 0;
+                            for(int r = 0; r < drawmatrix[0].length; r++) tmp += (drawmatrix[g][r]) / (R + 0.0);
+                            prob[g] += Math.log(tmp);
+                            maxlog = Math.max(prob[g], maxlog);
+                        }
+                    }
+                    double expsum = 0;
+                    for(int g = 0; g < this.G; g++){
+                        if(zerovec[g] != 0) expsum += Math.exp(prob[g] - maxlog);
+                    }
+
+                    for(int g = 0; g < this.G; g++){
+                        out[counter][g] = zerovec[g] == 0 ? 0 : Math.exp(prob[g] - maxlog - Math.log(expsum));
+                    }
+                    counter ++;
+                    if(counter % 20 == 0) System.out.print(".");
+
+                }
+            }
+        }
+        System.out.println("Finishing resampling membership");
+        if(update_prob) model.update_group_prob(out, rand, rngG, same_pop, temp);
+        System.out.println("Finishing resampling Fraction Distribution");
+
+//        resample_Z_internal(rand, rngN, rngE, Mean, Sigma, verbose, onetop, Sinv_times_Sigma_j_mj, Sigma_j_mj);
+        resample_Z(rand, rngN, rngE, Mean, Sigma, verbose);
+        return(out);
     }
 
 
@@ -465,7 +718,7 @@ public class Mix_data {
 
     // initialize Z
     public void initial_Z(Random rand, NormalDistribution rngN, Exponential rngE,
-                           double[][] mu, double[] sd, boolean verbose){
+                          double[][] mu, double[] sd, boolean verbose){
         double tmp_max = 0;
         double tmp_min = Double.MAX_VALUE;
         double tmp_mean = 0;
@@ -502,7 +755,7 @@ public class Mix_data {
 
                 }else if(type[j] == 2){
                     // todo: categorical case: initialize latent variable
-                    
+
                 }
             }
         }
@@ -564,8 +817,8 @@ public class Mix_data {
             double tmp_mean = 0;
             double tmp_max = 0;
             for(int i = 0; i < this.P; i++){
-                    tmp_mean += Wprodsum.getEntry(i, i)/(this.P+0.0);
-                    tmp_max = Math.max(tmp_max,  Wprodsum.getEntry(i, i));
+                tmp_mean += Wprodsum.getEntry(i, i)/(this.P+0.0);
+                tmp_max = Math.max(tmp_max,  Wprodsum.getEntry(i, i));
             }
             System.out.printf("S matrix : mean: %.4f, max: %.4f\n",
                     tmp_mean, tmp_max);
@@ -811,7 +1064,7 @@ public class Mix_data {
     // tildeR^-1 = Lambda^-1 D Omega D Lambda^-1
     public void resample_expanded(double[][] sd0, RealMatrix prec, double[] tau,  RandomGenerator rngEngine, boolean
             verbose, boolean
-            update_with_test) {
+                                          update_with_test) {
 
         double tmp_mean = 0;
         double tmp_min = Double.MAX_VALUE;
@@ -881,8 +1134,8 @@ public class Mix_data {
     }
 
     public void resample_expanded_conj(double[][] sd0, RealMatrix cov, RandomGenerator rngEngine, boolean verbose,
-                                     boolean
-            update_with_test) {
+                                       boolean
+                                               update_with_test) {
 
         double tmp_mean = 0;
         double tmp_min = Double.MAX_VALUE;
@@ -1027,21 +1280,21 @@ public class Mix_data {
     public void resample_tau(int[] binary_indices, int[] cont_indices, COV_model model){
         if(cont_indices.length < 1) return;
 
-         double alpha = 2.0;
-         double beta = 1.0;
+        double alpha = 2.0;
+        double beta = 1.0;
 
-         double meannewtau = 0;
+        double meannewtau = 0;
 
-         for(int j = 0; j < cont_indices.length; j++){
+        for(int j = 0; j < cont_indices.length; j++){
             RealMatrix tildeR11 = model.corr_by_tau.getSubMatrix(this.left_index[cont_indices[j]],
-                                                            this.left_index[cont_indices[j]]);
+                    this.left_index[cont_indices[j]]);
             RealMatrix gR12 = model.corr_by_tau.getSubMatrix(this.left_index[cont_indices[j]],
-                                                            this.remove_index[cont_indices[j]]);
+                    this.remove_index[cont_indices[j]]);
             for(int ii = 0; ii < P-1; ii++) gR12.setEntry(ii, 0, gR12.getEntry(ii, 0) / model.tau[cont_indices[j]]);
 
             double R22 = model.corr.getEntry(cont_indices[j], cont_indices[j]);
             RealMatrix R12tR11inv = new LUDecomposition(tildeR11).getSolver().getInverse().preMultiply(gR12
-                     .transpose());
+                    .transpose());
             double schur = R22 - gR12.preMultiply(R12tR11inv).getEntry(0,0);
             double[] b = new double[this.N];
             for(int ii = 0; ii < this.N; ii++) {
@@ -1054,25 +1307,25 @@ public class Mix_data {
                     }
                 }
             }
-             double[] mu_new = new double[1];
-             double[][] var_new = new double[1][1];
-             for(int ii = 0; ii < this.N; ii++) {
-                 int g = ii < this.N_test ? this.membership_test[ii] : this.membership[ii];
-                 mu_new[0] += b[ii] * (this.latent[ii][j] - this.Delta[g][j]);
-                 var_new[0][0] += Math.pow(this.latent[ii][j] - this.Delta[g][j], 2);
-             }
-             mu_new[0] /= var_new[0][0];
-             var_new[0][0] = schur / var_new[0][0];
+            double[] mu_new = new double[1];
+            double[][] var_new = new double[1][1];
+            for(int ii = 0; ii < this.N; ii++) {
+                int g = ii < this.N_test ? this.membership_test[ii] : this.membership[ii];
+                mu_new[0] += b[ii] * (this.latent[ii][j] - this.Delta[g][j]);
+                var_new[0][0] += Math.pow(this.latent[ii][j] - this.Delta[g][j], 2);
+            }
+            mu_new[0] /= var_new[0][0];
+            var_new[0][0] = schur / var_new[0][0];
 
-             double[] current = new double[1];
-             current[0] = 1/model.tau[j];
-             double[] Nminus2 = new double[1];
-             Nminus2[0] = this.N - 2;
-             Random rand = new Random();
-             double[] invsd = ESSsampler.sample(current, 4, mu_new, var_new, true, Nminus2, gR12, gR12, gR12, gR12,
-                     rand, 1000);
-             model.tau[j] = 1/invsd[0];
-             meannewtau += model.tau[j];
+            double[] current = new double[1];
+            current[0] = 1/model.tau[j];
+            double[] Nminus2 = new double[1];
+            Nminus2[0] = this.N - 2;
+            Random rand = new Random();
+            double[] invsd = ESSsampler.sample(current, 4, mu_new, var_new, true, Nminus2, gR12, gR12, gR12, gR12,
+                    rand, 1000);
+            model.tau[j] = 1/invsd[0];
+            meannewtau += model.tau[j];
         }
         System.out.println("New sampled marginal sd for continuous rv:  " + meannewtau / cont_indices.length);
     }
@@ -1089,9 +1342,9 @@ public class Mix_data {
         double min = Double.MAX_VALUE * (-1);
         double max = -0.19;
 
-       for(int i = 0; i < 1000; i++) {
-           System.out.printf("%.8f, ", MathUtil.truncNormal(rand, rngN, rngE, mean, sd, min, max, 5));
-       }
+        for(int i = 0; i < 1000; i++) {
+            System.out.printf("%.8f, ", MathUtil.truncNormal(rand, rngN, rngE, mean, sd, min, max, 5));
+        }
         System.out.println();
         for(int i = 0; i < 1000; i++) {
             System.out.printf("%.8f, ", MathUtil.leftTruncNormal(mean, sd, 0.19, rand, rngE));

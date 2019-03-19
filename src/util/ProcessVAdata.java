@@ -64,7 +64,7 @@ public class ProcessVAdata {
         boolean hotstart = false;
         double a_sd0 = 0.001;
         double b_sd0 = 0.001;
-        int burnin = (int) (Nitr / 2.0);
+        int burnin = 50;//(int) (Nitr / 2.0);
         int thin = 1;
 
 
@@ -223,7 +223,7 @@ public class ProcessVAdata {
             model.data.type[i] = 1;
         }
         double DirichletAlpha = model.data.N;//10000;//(model.data.N - model.data.N_test) / 2.0;
-        if(!informative_prior) DirichletAlpha = 10.0;
+        if(!informative_prior) DirichletAlpha = 1.0;
 
         if(csmffile.equals("expnew/InterVAcsmf")){
             double[] csmf = readPriorCSMF(dir0 + csmffile + ".csv");

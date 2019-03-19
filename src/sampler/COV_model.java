@@ -128,17 +128,6 @@ public class COV_model {
 
         RealMatrix crossprod = new Array2DRowRealMatrix(latents);
         crossprod = crossprod.preMultiply(crossprod.transpose()).scalarMultiply(1/(nn+0.0));
-//        for(int j = 0; j < this.P; j++){
-//            for(int jj = 0; jj < this.P; jj++){
-//                if(j != jj) crossprod.setEntry(j, jj, 0);
-//            }
-//        }
-//        RealMatrix Dinv = new Array2DRowRealMatrix(new double[P][P]);
-//        for(int j = 0; j < this.P; j++){
-//            double tmp = crossprod.getEntry(j, j) == 0 ? 1 : 1/Math.sqrt(crossprod.getEntry(j, j));
-//            Dinv.setEntry(j, j, tmp);
-//        }
-//        crossprod = Dinv.preMultiply(crossprod).preMultiply(Dinv);
         this.cov = this.cov.add(crossprod);
         this.prec = new LUDecomposition(this.cov).getSolver().getInverse();
         updateCovFromPrec();
