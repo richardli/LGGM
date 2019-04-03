@@ -1,3 +1,6 @@
 *.class
 src/resources
 .idea
+convergence
+experiments
+data

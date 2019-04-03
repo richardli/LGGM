@@ -57,6 +57,7 @@ public class Latent_model {
     // field used only in classifier method
     public boolean[] test_case;
     public double[][][] post_prob_draw;
+    public double[][] post_prob_draw_mean;
     public double[][] post_prob_pop;
     public boolean update_with_test;
     boolean anneal;
@@ -269,6 +270,8 @@ public class Latent_model {
                 }else {
                     this.save_output(itr, verbose);
                 }
+            }else{
+                if(update_group) this.save_output_test_prob_only(itr, testprob);
             }
         }
     }
@@ -348,6 +351,8 @@ public class Latent_model {
                 } else {
                     this.save_output(itr, verbose);
                 }
+            }else{
+                if(update_group) this.save_output_test_prob_only(itr, testprob);
             }
         }
 
@@ -419,6 +424,12 @@ public class Latent_model {
         return(new double[1][1]);
     }
 
+    public void save_output_test_prob_only(int itr, double[][] test_prob){
+        for (int g = 0; g < G; g++) {
+            this.post_prob_pop[g][itr] = this.post_prob[g];
+        }
+    }
+
     public void save_output(int itr, boolean verbose, double[][] test_prob) {
         save_output(itr, verbose);
             int current_count = (int) ((itr - this.burnin) / (this.thin + 0.0));
@@ -427,12 +438,13 @@ public class Latent_model {
                 if (this.test_case[i]) {
                     for (int g = 0; g < G; g++) {
                         this.post_prob_draw[g][current_count][i] = test_prob[counter][g];
+                        this.post_prob_draw_mean[g][i] += test_prob[counter][g];
                     }
                     counter++;
                 }
             }
             for (int g = 0; g < G; g++) {
-                this.post_prob_pop[g][current_count] = this.post_prob[g];
+                this.post_prob_pop[g][itr] = this.post_prob[g];
             }
         }
 
@@ -502,6 +514,7 @@ public class Latent_model {
         int burnin = 0;
         int thin = 1;
         boolean random_start = false;
+        boolean fixed_sim_seed = false;
 
 
         if(args.length > 0){
@@ -547,6 +560,9 @@ public class Latent_model {
             }else{
                 random_start = false;
             }
+            if(args.length > counter) {
+                fixed_sim_seed = Boolean.parseBoolean(args[counter]); counter++;
+            }
         }
 
 
@@ -554,8 +570,7 @@ public class Latent_model {
 
         boolean update_sparsity = false;
         String expriment_name = pre + covType + "N" + N + "P" + P + "Miss" + miss;
-        Random rand = new Random(seed);
-        MersenneTwister rngEngin = new MersenneTwister(seed);
+
         double c = 0.2;
         double multiplier = 2;
         int G = 1;
@@ -564,6 +579,7 @@ public class Latent_model {
         boolean adaptive = false;
         double a_sd0 = 0.0001;
         double b_sd0 = 0.0001;
+        int seed0 = seed;
 
         for(int rep = (1 + rep0); rep <= (Nrep + rep0); rep ++) {
             seed = seed + rep * 12345;
@@ -574,9 +590,19 @@ public class Latent_model {
             Latent_model model = new Latent_model(Nitr,burnin, thin, N,0, P, G, covType);
             model.data.init_adaptive(sd0, a_sd0, b_sd0, adaptive, power);
             Simulator simulator = new Simulator(N, P, G);
-            simulator.simCov(P, c, multiplier, seed, covTypeSim);
-            simulator.set_sim(model, rngEngin, rand, covType, miss, informative, misspecified, nContinuous, transform,
-                    seed);
+            if(fixed_sim_seed){
+                Random rand = new Random(seed0);
+                MersenneTwister rngEngin = new MersenneTwister(seed0);
+                simulator.simCov(P, c, multiplier, seed0, covTypeSim);
+                simulator.set_sim(model, rngEngin, rand, covType, miss, informative, misspecified, nContinuous, transform,
+                        seed0);
+            }else{
+                Random rand = new Random(seed);
+                MersenneTwister rngEngin = new MersenneTwister(seed);
+                simulator.simCov(P, c, multiplier, seed, covTypeSim);
+                simulator.set_sim(model, rngEngin, rand, covType, miss, informative, misspecified, nContinuous, transform,
+                        seed);
+            }
 
             EvalUtil.savetruth(model, currentdir, currentfile, covType,
                     simulator.prec, simulator.cov, simulator.mean);

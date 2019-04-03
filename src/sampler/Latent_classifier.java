@@ -119,10 +119,16 @@ public class Latent_classifier extends Latent_model{
         this.var_theta = new double[G];
         this.var0 = var0;
         this.informative_prior = informative_prior;
+        double[] tmp = new double[G];
+        double sum = 0;
+        for(int i = 0; i < G; i++){
+            tmp[i] = Math.exp(rand.nextDouble());
+            sum += tmp[i];
+        }
         for(int i = 0; i < G; i++){
             this.var_theta[i] = var0;
-            this.prior_prob[i] = 1 / (G + 0.0);
-            this.post_prob[i] = 1 / (G + 0.0);
+            this.prior_prob[i] = tmp[i]/sum;//1 / (G + 0.0);
+            this.post_prob[i] = tmp[i]/sum;//1 / (G + 0.0);
             // this is of length p-1, first fix at 1, removed from here
             this.post_prob_theta_transform[i] = Math.log(this.post_prob[i] / this.post_prob[0]);
             this.prior_mean_theta_transform[i] = Math.log(this.post_prob[i] / this.post_prob[0]);
@@ -133,11 +139,13 @@ public class Latent_classifier extends Latent_model{
         this.test_case = new boolean[N];
         this.N_test = N_test;
         this.post_prob_draw = new double[this.G][this.Nout][this.N_test];
-        this.post_prob_pop = new double[this.G][this.Nout];
+        this.post_prob_draw_mean = new double[this.G][this.N_test];
+
+        this.post_prob_pop = new double[this.G][this.Nitr];
         this.penalty_mat = new double[this.P][this.P];
     }
     // initialize uniform prior
-    public void init_prior(int G, int N_test, double alpha0, double[][] mat, double var0, boolean informative_prior){
+    public void init_prior(int G, int N_test, double alpha0, Random rand, double[][] mat, double var0, boolean informative_prior){
         this.true_prob = new double[G];
         this.prior_prob = new double[G];
         this.post_prob = new double[G];
@@ -145,10 +153,16 @@ public class Latent_classifier extends Latent_model{
         this.var0 = var0;
         this.var_theta = new double[G];
         this.informative_prior = informative_prior;
+        double[] tmp = new double[G];
+        double sum = 0;
+        for(int i = 0; i < G; i++){
+            tmp[i] = Math.exp(rand.nextDouble());
+            sum += tmp[i];
+        }
         for(int i = 0; i < G; i++){
             this.var_theta[i] = var0;
-            this.prior_prob[i] = 1 / (G + 0.0);
-            this.post_prob[i] = 1 / (G + 0.0);
+            this.prior_prob[i] = tmp[i]/sum;//1 / (G + 0.0);
+            this.post_prob[i] = tmp[i]/sum;//1 / (G + 0.0);
             this.alpha[i] = alpha0;
         }
         this.domain_computed = false;
@@ -156,7 +170,9 @@ public class Latent_classifier extends Latent_model{
         this.test_case = new boolean[N];
         this.N_test = N_test;
         this.post_prob_draw = new double[this.G][this.Nout][this.N_test];
-        this.post_prob_pop = new double[this.G][this.Nout];
+        this.post_prob_draw_mean = new double[this.G][this.N_test];
+
+        this.post_prob_pop = new double[this.G][this.Nitr];
         this.penalty_mat = new double[this.P][this.P];
         for(int i = 0; i < mat.length; i ++){
             for(int j = 0; j < mat.length; j++){
@@ -186,7 +202,8 @@ public class Latent_classifier extends Latent_model{
         this.test_case = new boolean[N];
         this.N_test = N_test;
         this.post_prob_draw = new double[this.G][this.Nout][this.N_test];
-        this.post_prob_pop = new double[this.G][this.Nout];
+        this.post_prob_draw_mean = new double[this.G][this.N_test];
+        this.post_prob_pop = new double[this.G][this.Nitr];
         this.penalty_mat = new double[this.P][this.P];
         for(int i = 0; i < mat.length; i ++){
             for(int j = 0; j < mat.length; j++){
@@ -239,14 +256,20 @@ public class Latent_classifier extends Latent_model{
             this.alpha[i] *= this.prior_prob[i];
         }
     }
-    public void update_prior_prob(){
+    public void update_prior_prob(Random rand){
         this.prior_prob = new double[G];
         this.post_prob = new double[G];
         this.mu_theta = new double[G];
 
+        double[] tmp = new double[G];
+        double sum = 0;
+        for(int i = 0; i < G; i++){
+            tmp[i] = Math.exp(rand.nextDouble());
+            sum += tmp[i];
+        }
         for(int i = 0; i < this.G; i++){
-            this.prior_prob[i] += 1 / (G + 0.0);
-            this.post_prob[i] += 1 / (G + 0.0);
+            this.prior_prob[i] += tmp[i] / sum;// 1 / (G + 0.0);
+            this.post_prob[i] += tmp[i] / sum;//1 / (G + 0.0);
         }
         this.post_prob_theta_transform = new double[this.prior_prob.length];
         this.prior_mean_theta_transform = new double[G];
@@ -298,9 +321,6 @@ public class Latent_classifier extends Latent_model{
                 for (int i = 0; i < pnb.length; i++) {
                     for (int j = 0; j < this.G; j++) {
                         if (this.post_prob[j] > 0) pnb[i][j] /= Math.pow(this.post_prob[j], 1);
-//                    pnb[i][j] = Math.pow(pnb[i][j], temp);
-//                    pnb[i][j] *= (counts[j]-(this.data.membership_test[i]==j ? 1:0) * temp) + alpha[j];
-//                    pnb[i][j] /= (nn * temp + sumalpha);
                         pnb[i][j] *= (counts[j] - (this.data.membership_test[i] == j ? 1 : 0)) + alpha[j];
                         pnb[i][j] /= (nn + sumalpha);
                         pnb[i][j] = Math.pow(pnb[i][j], temp);
@@ -325,6 +345,20 @@ public class Latent_classifier extends Latent_model{
                     right += this.data.membership_test[i] == this.true_membership[i] ? 1 : 0;
                 }
                 System.out.println("Correct case: " + right + " Accuracy: " + right / (pnb.length + 0.0));
+
+                right = 0;
+                for(int i = 0; i < this.N_test; i++){
+                    double maxavg = 0;
+                    double selectavg = 0;
+                    for(int g = 0; g < this.G; g++){
+                        if(this.post_prob_draw_mean[g][i] > maxavg){
+                            maxavg = this.post_prob_draw_mean[g][i];
+                            selectavg = g;
+                        }
+                    }
+                    right += selectavg == this.true_membership[i] ? 1 : 0;
+                }
+                System.out.println("Avg: Correct case: " + right + " Accuracy: " + right / (pnb.length + 0.0));
             }
             System.out.println("Number in group: " +Arrays.toString(counts));
             System.out.println("Number left group: " + Arrays.toString(removed));
@@ -347,6 +381,7 @@ public class Latent_classifier extends Latent_model{
                         }
                     }
                     int pick = MathUtil.discrete_sample(pnb[i], rand.nextDouble());
+
 
 //            //todo: warning warning!! Only usable when test data is at beginning of the data!!!
                     if (this.data.membership_test[i] < G)
@@ -474,7 +509,7 @@ public class Latent_classifier extends Latent_model{
 
     @Override
     public double[][] update_group_marginal( Random rand, Gamma rngG, NormalDistribution rngN, Exponential rngE,
-                                             boolean integrate, boolean
+                                             boolean a, boolean
             NB, boolean
                                             same_pop, double temp, boolean updateprob) {
             return (update_group_by_draw_marginal(rand, rngG, rngN, rngE, NB, same_pop, temp, updateprob));
@@ -1058,16 +1093,18 @@ public class Latent_classifier extends Latent_model{
         String directory = "/Users/zehangli/";
         String pre = "AAA";
         int N0 = 0;
-        int N_test = 800;
-        int G = 20;
+        int N_test = 500;
+        int G = 5;
         int N = N_test + N0;
         int P = 50;
-        int nContinuous = 5;
+        int nContinuous = 0;
         double miss = 0.5;
         int Nrep = 1;
         String covType = "SSSL";
         String covTypeSim = "Random";
-        int Nitr =1000;
+        int Nitr =2000;
+        int burnin = 0;
+        int thin = 1;
         int seed = 321;
         boolean informative = false;
         boolean misspecified = true;
@@ -1098,6 +1135,7 @@ public class Latent_classifier extends Latent_model{
             covTypeSim = args[counter];
             counter++;
             Nitr = Integer.parseInt(args[counter]);
+            burnin = (Nitr/2);
             counter++;
             sd0 = Double.parseDouble(args[counter]);
             counter++;
@@ -1128,7 +1166,7 @@ public class Latent_classifier extends Latent_model{
             if (rep0 == 0) {
                 Nrep = 1;
             }
-            integrate = true;
+            integrate = false;
             if (args.length > counter) {
                 integrate = Boolean.parseBoolean(args[counter]);
                 counter++;
@@ -1174,7 +1212,7 @@ public class Latent_classifier extends Latent_model{
         double b_sd0 = 0.0001;
         double var0 = 1;
         boolean informative_prior = false;
-        boolean useDirichlet = true;
+        boolean useDirichlet = false;
         boolean anneal = false;
 
         for(int rep = (1 + rep0); rep <= (Nrep + rep0); rep ++) {
@@ -1183,7 +1221,7 @@ public class Latent_classifier extends Latent_model{
             String currentdir = directory + expriment_name + "/";
             String currentfile =  expriment_name + "Rep" + rep;
 
-            Latent_classifier model = new Latent_classifier(Nitr, N, N_test, P, G, covType);
+            Latent_classifier model = new Latent_classifier(Nitr, burnin, thin, N, N_test, P, G, covType);
             model.Dirichlet = useDirichlet;
             model.data.init_adaptive(sd0, a_sd0, b_sd0, adaptive, power);
             model.update_with_test = update_with_test;
@@ -1199,7 +1237,7 @@ public class Latent_classifier extends Latent_model{
             EvalUtil.savetruth(model, currentdir, currentfile, covType,
                     simulator.prec, simulator.cov, simulator.mean);
             model.keeptruth();
-            model.update_prior_prob();
+            model.update_prior_prob(rand);
 
 
             /** mask some of the data as testing data **/

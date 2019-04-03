@@ -36,14 +36,14 @@ public class ProcessVAdata {
         String train = "expnew/K_train0";
         String test = "expnew/K_test0";
         String directory = "/Users/zehangli/";
-        int Nitr = 3000;
+        int Nitr = 10;
         String name = "newK9-0-0-20F";
         String type = "SSSL";
         double sd0 = 0.5;
         boolean NB = false;
         boolean integrate = false;
         int PP = 92;
-        int seed = 54321;
+        int seed = 5432;
         int Ntrain = 10000;
         boolean update_with_test = true;
         boolean adaptive = true;
@@ -58,7 +58,7 @@ public class ProcessVAdata {
         double shrink = 1;
         double var0 = 1;
         String csmffile = "nofile";
-        boolean Dirichlet = true;
+        boolean Dirichlet = false;
         boolean savefull = true;
         String impossiblelist = "nofile";
         boolean hotstart = false;
@@ -223,13 +223,14 @@ public class ProcessVAdata {
             model.data.type[i] = 1;
         }
         double DirichletAlpha = model.data.N;//10000;//(model.data.N - model.data.N_test) / 2.0;
-        if(!informative_prior) DirichletAlpha = 10.0;
+        if(!informative_prior) DirichletAlpha = 1.0;
 
         if(csmffile.equals("expnew/InterVAcsmf")){
             double[] csmf = readPriorCSMF(dir0 + csmffile + ".csv");
             model.init_prior(G, N_test, DirichletAlpha, penalty_mat, var0, informative_prior, csmf);
         }else{
-            model.init_prior(G, N_test, DirichletAlpha, penalty_mat, var0, informative_prior);
+            Random rand = new Random(seed);
+            model.init_prior(G, N_test, DirichletAlpha, rand, penalty_mat, var0, informative_prior);
         }
         model.update_with_test = update_with_test;
         Random rand = new Random(seed);
@@ -267,21 +268,9 @@ public class ProcessVAdata {
             }
             model.data.type[j] = 1;
         }
-//        if(vadata.Ntrain > 0){
-//            int index=0;
-//            int[] trainlabel = new int[vadata.Ntrain];
-//            for(int i = 0; i < N; i++) {
-//                if (!model.test_case[i]) {
-//                    trainlabel[index] = model.data.membership[i];
-//                    index++;
-//                }
-//            }
-//            model.update_prior_prob(trainlabel);
-//        }else{
-//            model.update_prior_prob();
-//        }
+
         if(csmffile.equals("nofile")  | csmffile.equals("expnew/InterVAcsmf")){
-            model.update_prior_prob();
+            model.update_prior_prob(rand);
         }else{
             double[] csmf = readPriorCSMF(dir0 + csmffile + ".csv");
             model.update_prior_prob(csmf);
