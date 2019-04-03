@@ -1,73 +1,33 @@
 #######################################################
+##        Karonga data CV
 #######################################################
-##        Prior simulation
-#######################################################
-#######################################################
-javaclib math/*.java sampler/*.java util/*.java
-
-ii=1
-for P in 100 150; do
-for v0 in 0.001 0.005 0.01 0.05 0.1; do #  0.01 0.02 0.03 0.05 0.1
-for h in 10 20 50 100 150 200; do
-for lambda in 1 5 10 20 30; do
-srun --mem-per-cpu=4500 --partition=short --time=10:00:00 -J pc$ii ~/jdk1.8.0_111/bin/java -cp .:../library/\*:../library/jdistlib-0.4.1-bin/\* -Xmx4g  sampler/Latent_model_prior ../experiments/ $P $v0 $h $lambda 2000 > ../experiments/log/prior-$ii &
-ii=$(($ii+1))
-sleep 1
-done
-done
-done
-done
-
-P=100
-for v0 in 0.001 0.005; do
-lambda=10
-for h in 10 50 100 200; do
-srun --mem-per-cpu=4500 --partition=short --time=3:00:00 -J pcX ~/jdk1.8.0_111/bin/java -cp .:../library/\*:../library/jdistlib-0.4.1-bin/\* -Xmx4g  sampler/Latent_model_prior ../experiments/ $P $v0 $h $lambda 2000 > ../experiments/log/prior-$ii &
-done
-done
- 
-for v0 in 0.01 0.05 0.1; do
-h=200
-srun --mem-per-cpu=4500 --partition=short --time=3:00:00 -J pcX ~/jdk1.8.0_111/bin/java -cp .:../library/\*:../library/jdistlib-0.4.1-bin/\* -Xmx4g  sampler/Latent_model_prior ../experiments/ $P $v0 $h $lambda 2000 > ../experiments/log/prior-$ii &
-done
-
-#######################################################
-#######################################################
-##        Karonga data
-#######################################################
-#######################################################
-### uninformative prior
 P=92
-ii=1
-adaptive=true
-samepop=true   
-dirichlet=true
-shrink=1
-anneal=false
-var0=1
-
-case=C 
-for test in `seq 1 20`; do
-type=0 # 5% case but without training data
-srun --mem-per-cpu=4500 --partition=short --time=12:00:00 -J K2 ~/jdk1.8.0_111/bin/java -cp .:../library/\*:../library/jdistlib-0.4.1-bin/\* -Xmx8g  util/ProcessVAdata expnew/typeK3 expnew/K\_$test\_train1 expnew/K\_$test\_test1 ../experiments/ 3000 newK9-$test-$type-$case SSSL 0.5 false false $P 54321 0 true $adaptive 0.05 1 10 0.0001 true $samepop $anneal nofile $shrink $var0 nofile $dirichlet> ../experiments/log/newK9-$test-$type-$case& 	
+samepop=false   
+dirichlet=false
+case=CV1
+for test in `seq 1 50`; do	
+# type=0 # 5% case but without training data
+# srun --mem-per-cpu=8500 --partition=medium --time=3-12:00:00 -J k3 ~/jdk1.8.0_111/bin/java -cp .:../library/\*:../library/jdistlib-0.4.1-bin/\* -Xmx8g  util/ProcessVAdata expnew/typeK3 expnew/K\_$test\_train1 expnew/K\_$test\_test1 ../experiments/ 20000 Karonga2019-$test-$type-$case SSSL 0.5 false false $P 54321 0 true true 0.01 1 10 0.0001 true $samepop false nofile 1 1 nofile $dirichlet false 10000 10 > ../experiments/log/KarongaCV-$type-$test-$case& 		
+# 5%, 10%, 20%
 for type in `seq 1 3`; do
-srun --mem-per-cpu=4500 --partition=short --time=12:00:00 -J K2 ~/jdk1.8.0_111/bin/java -cp .:../library/\*:../library/jdistlib-0.4.1-bin/\* -Xmx8g  util/ProcessVAdata expnew/typeK3 expnew/K\_$test\_train$type expnew/K\_$test\_test$type ../experiments/ 3000 newK9-$test-$type-$case SSSL 0.5 false false $P 54321 10000 true $adaptive 0.05 1 10 0.0001 true $samepop $anneal nofile $shrink $var0 nofile $dirichlet> ../experiments/log/newK9-$test-$type-$case& 
+srun --mem-per-cpu=8500 --partition=medium --time=3-12:00:00 -J k3 ~/jdk1.8.0_111/bin/java -cp .:../library/\*:../library/jdistlib-0.4.1-bin/\* -Xmx8g  util/ProcessVAdata expnew/typeK3 expnew/K\_$test\_train$type expnew/K\_$test\_test$type ../experiments/ 20000 Karonga2019-$test-$type-$case SSSL 0.5 false false $P 54321 10000 true true 0.01 1 10 0.0001 true $samepop false nofile 1 1 nofile $dirichlet false 10000 10 > ../experiments/log/KarongaCV-$type-$test-$case& 	
 done
 sleep 1
 done
 
-# single run, first half training data, all second half testing data 
+##########################################################
+##        Karonga data single run different starting point
+###########################################################
 P=92
-ii=1
-adaptive=true
 samepop=false  
-dirichlet=true
-shrink=1
-anneal=false
-var0=1
-test=20
+dirichlet=false  
 type=0
-case=20F
-srun --mem-per-cpu=4500 --partition=short --time=8:00:00 -J kcv0 ~/jdk1.8.0_111/bin/java -cp .:../library/\*:../library/jdistlib-0.4.1-bin/\* -Xmx8g  util/ProcessVAdata expnew/typeK3 expnew/K\_train$type expnew/K\_test$type ../experiments/ 3000 newK9-0-$type-$case SSSL 0.5 false false $P 54321 10000 true $adaptive 0.01 1 10 0.0001 true $samepop $anneal expnew/typeK_structure $shrink $var0 nofile $dirichlet> ../experiments/log/newK9-$test-$type-$case&
-case=21F # no training data
-srun --mem-per-cpu=4500 --partition=short --time=8:00:00 -J kcv0 ~/jdk1.8.0_111/bin/java -cp .:../library/\*:../library/jdistlib-0.4.1-bin/\* -Xmx8g  util/ProcessVAdata expnew/typeK3 expnew/K\_train$type expnew/K\_test$type ../experiments/ 3000 newK9-0-$type-$case SSSL 0.5 false false $P 54321 0 true $adaptive 0.01 1 10 0.0001 true $samepop $anneal expnew/typeK_structure $shrink $var0 nofile $dirichlet> ../experiments/log/newK9-$test-$type-$case&
+case=1RR
+srun --mem-per-cpu=8500 --partition=medium --time=2-0:00:00 -J k1 ~/jdk1.8.0_111/bin/java -cp .:../library/\*:../library/jdistlib-0.4.1-bin/\* -Xmx8g  util/ProcessVAdata expnew/typeK3 expnew/K\_train$type expnew/K\_test$type ../experiments/ 20000 Karonga2019-$case SSSL 0.5 false false $P 54321 10000 true true 0.01 1 10 0.0001 true $samepop false expnew/typeK_structure 1 1 nofile $dirichlet true 10000 10 > ../experiments/log/Karonga-$case&
+case=2RR
+srun --mem-per-cpu=8500 --partition=medium --time=2-0:00:00 -J k1 ~/jdk1.8.0_111/bin/java -cp .:../library/\*:../library/jdistlib-0.4.1-bin/\* -Xmx8g  util/ProcessVAdata expnew/typeK3 expnew/K\_train$type expnew/K\_test$type ../experiments/ 20000 Karonga2019-$case SSSL 0.5 false false $P 66689 10000 true true 0.01 1 10 0.0001 true $samepop false expnew/typeK_structure 1 1 nofile $dirichlet true 10000 10 > ../experiments/log/Karonga-$case&
+ case=3RR
+srun --mem-per-cpu=8500 --partition=medium --time=2-0:00:00 -J k1 ~/jdk1.8.0_111/bin/java -cp .:../library/\*:../library/jdistlib-0.4.1-bin/\* -Xmx8g  util/ProcessVAdata expnew/typeK3 expnew/K\_train$type expnew/K\_test$type ../experiments/ 20000 Karonga2019-$case SSSL 0.5 false false $P 12345 10000 true true 0.01 1 10 0.0001 true $samepop false expnew/typeK_structure 1 1 nofile $dirichlet true 10000 10 > ../experiments/log/Karonga-$case&
+case=4RR
+srun --mem-per-cpu=8500 --partition=medium --time=2-0:00:00 -J k1 ~/jdk1.8.0_111/bin/java -cp .:../library/\*:../library/jdistlib-0.4.1-bin/\* -Xmx8g  util/ProcessVAdata expnew/typeK3 expnew/K\_train$type expnew/K\_test$type ../experiments/ 20000 Karonga2019-$case SSSL 0.5 false false $P 52314 10000 true true 0.01 1 10 0.0001 true $samepop false expnew/typeK_structure 1 1 nofile $dirichlet true 10000 10 > ../experiments/log/Karonga-$case&
+ 

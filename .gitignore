@@ -4,3 +4,8 @@ src/resources
 convergence
 experiments
 data
+*backup.R
+figures
+*backup.sh
+exp-prior.sh
+*backup*

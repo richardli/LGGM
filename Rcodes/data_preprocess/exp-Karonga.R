@@ -50,10 +50,6 @@ order <- rev(order(tab0))
 tab1 <- apply(tab, 1, function(x){x/sum(x)})
 tab1 <- tab1[order,]
 tab2 <- t(tab)[order, ]
-# corrplot(tab1, is.corr = FALSE, method="color", 
-# 	     p.mat = tab2, insig = "p-value", sig.level = -1,
-# 	     pch.col="grey")
-
 causes.text <- rownames(tab2)
 
 
@@ -74,33 +70,6 @@ getProbbase <- function(train, G, causes){
 	probbase <- matrix(NA, G, P)
 	prior_sub <- train
 	for(i in 1:G){
-		probbase[i, ] <- apply(prior_sub[prior_sub[, 2] == causes[i], -c(1:2)], 2, function(x){sum(x=="Y") / sum(x != ".")})
-	}
-	mean <- apply(probbase, 2, mean, na.rm = TRUE)
-	for(i in 1:P){
-		probbase[is.na(probbase[, i]), i] <- mean[i]
-	}
-	probbase[is.na(probbase)] <- 0.5
-	probbase[probbase == 0] <- min(probbase[probbase>0]) / 2
-	probbase[probbase == 1] <- 1 - (1 - max(probbase[probbase<1]))/2
-	return(probbase)
-}
-
-getProbbase2 <- function(train, G, causes){
-	P <- dim(train)[2] - 2
-	probbase <- matrix(NA, G, P)
-	prior_sub <- train
-	for(i in 1:G){
-		probbase[i, ] <- apply(prior_sub[prior_sub[, 2] == causes[i], -c(1:2)], 2, function(x){(1+sum(x=="Y")) / (2+sum(x != "."))})
-	}
-	return(probbase)
-}
-
-getProbbase3 <- function(train, G, causes){
-	P <- dim(train)[2] - 2
-	probbase <- matrix(NA, G, P)
-	prior_sub <- train
-	for(i in 1:G){
 		probbase[i, ] <- apply(prior_sub[prior_sub[, 2] == causes[i], -c(1:2)], 2, function(x){sum(x=="Y") / length(x)})
 	}
 	mean <- apply(probbase, 2, mean, na.rm = TRUE)
@@ -112,28 +81,11 @@ getProbbase3 <- function(train, G, causes){
 	probbase[probbase == 1] <- 1 - (1 - max(probbase[probbase<1]))/2
 	return(probbase)
 }
-
-getProbbase4 <- function(train, G, causes){
-	P <- dim(train)[2] - 2
-	probbase <- matrix(NA, G, P)
-	prior_sub <- train
-	for(i in 1:G){
-		probbase[i, ] <- apply(prior_sub[prior_sub[, 2] == causes[i], -c(1:2)], 2, function(x){(1+sum(x=="Y")) / (2+length(x))})
-	}
-	return(probbase)
-}
+ 
 
 data1[, 2] <- match(data1[, 2], causes.text)
-set1 <- which(year1 <= 2007)
-probbase <- getProbbase(data1[set1, ], 16, 1:16) 
-delta <- qnorm(1-probbase)
-probbase2 <- getProbbase2(data1[set1, ], 16, 1:16) 
-delta2 <- qnorm(1-probbase2)
-probbase3 <- getProbbase3(data1[set1, ], 16, 1:16) 
+probbase3 <- getProbbase(data1[set1, ], 16, 1:16) 
 delta3 <- qnorm(1-probbase3)
-probbase4 <- getProbbase4(data1[set1, ], 16, 1:16) 
-delta4 <- qnorm(1-probbase4)
-
 data1 <- data1[, -1]
 data1[,-1] <- apply(data1[,-1], 2, function(x){x[which(x=="")] <- "N";return(x)})
 
@@ -147,10 +99,7 @@ remain <- c(1:dim(delta)[2])[union(which(allno < 1),
 symps <- colnames(data1[, 1+remain]) # 92
 save(symps, file = paste0("../data/expnew/sympsK.rda"))
 
-write.table(delta[, remain], file = paste0("../data/expnew/typeK_delta.csv"), row.names = F, col.names = F, sep = ",", quote=F)
-write.table(delta2[, remain], file = paste0("../data/expnew/typeK2_delta.csv"), row.names = F, col.names = F, sep = ",", quote=F)
 write.table(delta3[, remain], file = paste0("../data/expnew/typeK3_delta.csv"), row.names = F, col.names = F, sep = ",", quote=F)
-write.table(delta4[, remain], file = paste0("../data/expnew/typeK4_delta.csv"), row.names = F, col.names = F, sep = ",", quote=F)
 csmf <- as.numeric(table(data1[set1, 1]) / length(set1))
 write.table(csmf, file = paste0("../data/expnew/csmf.csv"), row.names = F, col.names = F, sep = ",", quote=F)
 write.table(data1[set1, c(1, 1+remain)], file = paste0("../data/expnew/K_train0.csv"), row.names = F, col.names = F, sep = ",", quote=F)

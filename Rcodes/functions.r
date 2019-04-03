@@ -42,7 +42,7 @@ plug_in_estimator <- function(data, type, corr, delta, csmf = NULL, sigma2 = NUL
 }
 
 naivebayes_eval <- function(type, train, test, train.Y, test.Y, csmf, mean.true){
-	P <- dim(corr.true)[1]
+	P <- length(type)
 	G <- dim(mean.true)[1]
 	delta <- matrix(0, G, P)
 	Ntrain <- dim(train)[1]
@@ -106,37 +106,46 @@ evalNBprob <- function(probbase, testing, G, csmf = NULL, csmf.true){
 		return(list(csmf.true = csmf.true, csmf.nb = csmf.nb, csmf.inter = csmf.inter, fitted.nb = fitted.nb, fitted.inter = fitted.inter, pnb = pnb.ind, pnb.inter = pnb.ind.inter))
 	}
 
-# evalNB <- function(training, testing, G, csmf = NULL, csmf.true, min=0.001,max=0.999){
-# 		Ntest <- dim(testing)[1]
-# 		pnb.ind <- pnb.ind.inter <- matrix(NA, Ntest, G)
-# 		P <- dim(testing)[2]-1
-# 		probbase <- matrix(NA, G, P)
-# 		for(i in 1:G){
-# 			probbase[i, ] <- apply(training[training[, 1] == i, -1], 2, function(x){sum(x=="Y") / (sum(x == "N") + sum(x == "Y"))})
-# 		}
-# 		probbase[is.na(probbase)] <- 0.5
-# 		probbase[probbase == 0] <- min
-# 		probbase[probbase == 1] <- max
-# 		delta <- qnorm(1-probbase)
-# 		if(is.null(csmf)){
-# 			csmf.train <- rep(1/G, G)
-# 		}
 
-# 		for(i in 1:Ntest){
-# 			for(g in 1:G){
-# 				pnb.ind.inter[i, g] <- prod(probbase[g, which(testing[i,-1] == "Y")], na.rm = TRUE)  * csmf.train[g]
-# 				pnb.ind[i, g] <- pnb.ind.inter[i,g] * prod(1 - probbase[g, which(testing[i,-1] == "N")], na.rm = TRUE)  
-# 			}
-# 			if(sum(pnb.ind[i, ]) > 0) pnb.ind[i, ] <- pnb.ind[i, ] / sum(pnb.ind[i, ])
-# 			if(sum(pnb.ind.inter[i, ]) > 0) pnb.ind.inter[i, ] <- pnb.ind.inter[i, ] / sum(pnb.ind.inter[i, ])
-# 			cat(".")
-# 		}
-# 		csmf.nb <- apply(pnb.ind, 2, mean)
-# 		csmf.inter <- apply(pnb.ind.inter, 2, mean)
-# 		fitted.nb <- getAccuracy(pnb.ind, testing[, 1], csmf=csmf.true)[1:4]
-# 		fitted.inter <- getAccuracy(pnb.ind.inter, testing[, 1], csmf=csmf.true)[1:4]
-# 		return(list(csmf.true = csmf.true, csmf.nb = csmf.nb, csmf.inter = csmf.inter, fitted.nb = fitted.nb, fitted.inter = fitted.inter, pnb = pnb.ind, pnb.inter = pnb.ind.inter))
-# 	}
+evalNBprob2 <- function(probbase, training, testing, G, csmf = NULL, csmf.true, samepop=TRUE){
+	is.testing <- 1:dim(testing)[1]
+	if(samepop){
+		testing <- rbind(testing, training)
+	}
+	Ntest <- dim(testing)[1]
+	pnb.ind <- pnb.ind.inter <- pnb.ind.miss <- matrix(NA, Ntest, G)
+	if(is.null(csmf)){
+		csmf <- rep(1/G, G)
+	}
+	for(i in 1:Ntest){
+		for(g in 1:G){
+			pnb.ind.inter[i, g] <- prod(probbase[g, which(testing[i,-1] == "Y")], na.rm = TRUE)  * csmf[g]
+			pnb.ind[i, g] <- pnb.ind.inter[i,g] * prod(1 - probbase[g, which(testing[i,-1] == "N")], na.rm = TRUE)  
+			pnb.ind.miss[i, g] <- pnb.ind.inter[i,g] * prod(1 - probbase[g, which(testing[i,-1] != "Y")], na.rm = TRUE)  
+		}
+		if(sum(pnb.ind[i, ]) > 0) pnb.ind[i, ] <- pnb.ind[i, ] / sum(pnb.ind[i, ])
+		if(sum(pnb.ind.inter[i, ]) > 0) pnb.ind.inter[i, ] <- pnb.ind.inter[i, ] / sum(pnb.ind.inter[i, ])
+		if(sum(pnb.ind.miss[i, ]) > 0) pnb.ind.miss[i, ] <- pnb.ind.miss[i, ] / sum(pnb.ind.miss[i, ])
+		cat(".")
+	}
+	
+    fitted.nb <- getAccuracy(pnb.ind[is.testing,], testing[is.testing, 1], csmf=csmf.true)[1:4]
+	fitted.inter <- getAccuracy(pnb.ind.inter[is.testing, ], testing[is.testing, 1], csmf=csmf.true)[1:4]
+	fitted.miss <- getAccuracy(pnb.ind.miss[is.testing, ], testing[is.testing, 1], csmf=csmf.true)[1:4]
+	
+
+	csmf.nb <- apply(pnb.ind, 2, mean)
+	csmf.inter <- apply(pnb.ind.inter, 2, mean)
+	csmf.miss <- apply(pnb.ind.miss, 2, mean)
+	
+	fitted.nb[1] <- csmfacc(csmf.nb, csmf.true)
+	fitted.inter[1] <- csmfacc(csmf.inter, csmf.true)
+	fitted.miss[1] <- csmfacc(csmf.miss, csmf.true)
+
+	return(list(csmf.true = csmf.true, csmf.nb = csmf.nb, csmf.inter = csmf.inter, fitted.nb = fitted.nb, fitted.inter = fitted.inter, pnb = pnb.ind, pnb.inter = pnb.ind.inter, pnb.miss = pnb.ind.miss, fitted.miss=fitted.miss))
+}
+
+csmfacc <- function(csmf, csmf.fit){ 1-sum(abs(csmf.fit - csmf))/2/(1-min(csmf))}
 
 
 # debug(plug_in_estimators_eval)
@@ -645,3 +654,131 @@ getFanEstimatorMix <- function(X, delta, type){
 	return(Rhat)
 
 }
+
+
+getProbbase3 <- function(train, G, causes){
+	P <- dim(train)[2] - 2
+	probbase <- matrix(NA, G, P)
+	prior_sub <- train
+	for(i in 1:G){
+		probbase[i, ] <- apply(prior_sub[prior_sub[, 2] == causes[i], -c(1:2)], 2, function(x){sum(x=="Y") / length(x)})
+	}
+	mean <- apply(probbase, 2, mean, na.rm = TRUE)
+	for(i in 1:P){
+		probbase[is.na(probbase[, i]), i] <- mean[i]
+	}
+	probbase[is.na(probbase)] <- 0.5
+	probbase[probbase == 0] <- min(probbase[probbase>0]) / 2
+	probbase[probbase == 1] <- 1 - (1 - max(probbase[probbase<1]))/2
+	return(probbase)
+}
+
+
+
+insilico.train2<- function(data, train, cause, causes.table = NULL, thre = 0.95, type = c("quantile", "fixed", "empirical")[1], isNumeric = FALSE, updateCondProb = TRUE, keepProbbase.level = TRUE,  CondProb = NULL, CondProbNum = NULL, datacheck = TRUE, datacheck.missing = TRUE, warning.write = FALSE, external.sep = TRUE, Nsim = 4000, thin = 10, burnin = 2000, auto.length = TRUE, conv.csmf = 0.02, jump.scale = 0.1, levels.prior = NULL, levels.strength = NULL, trunc.min = 0.0001, trunc.max = 0.9999, subpop = NULL, java_option = "-Xmx1g", seed = 1, phy.code = NULL, phy.cat = NULL, phy.unknown = NULL, phy.external = NULL, phy.debias = NULL, exclude.impossible.cause = TRUE, impossible.combination = NULL, indiv.CI = NULL, ...){ 
+	  
+	  # handling changes throughout time
+	  args <- as.list(match.call())
+	  if(!is.null(args$length.sim)){
+	  	Nsim <- args$length.sim
+	  	message("length.sim argument is replaced with Nsim argument, will remove in later versions.\n")
+	  }
+
+
+
+	if(type == "empirical"){
+		cat("Empirical conditional probabilities are used, so updateCondProb is forced to be FALSE.")
+		updateCondProb <- FALSE
+	}
+
+	if(is.null(CondProbNum)){
+		prob.learn <- extract.prob(train = train, 
+						  gs = cause, 
+						  gstable = causes.table, 
+						  thre = thre, 
+						  type = type, 
+						  isNumeric = isNumeric)
+		# remove unused symptoms
+		col.exist <- c(colnames(data)[1], cause, colnames(prob.learn$symps.train))
+		remove <- which(colnames(data) %in% col.exist == FALSE)
+		if(length(remove) > 0){
+			warning(paste(length(remove), "symptoms deleted from testing data to match training data:", 
+				paste(colnames(data)[remove], collapse = ", ")),
+				immediate. = TRUE)	
+			data <- data[, -remove]
+		}
+
+	}
+	if(is.null(CondProbNum)){
+		if(updateCondProb){
+			probbase.touse <- prob.learn$cond.prob.alpha
+			CondProbNum <- NULL
+		}else{
+			probbase.touse <- prob.learn$cond.prob
+			CondProbNum <- prob.learn$cond.prob
+		}
+	}else{
+		probbase.touse <- t(CondProbNum)
+		prob.learn <- NULL
+		prob.learn$cond.prob <- matrix(NA, 1, length(causes.table))
+		colnames(prob.learn$cond.prob) <- causes.table
+	}
+
+
+
+	# default levels.strength for two different P(S|C) extraction
+	if(is.null(levels.strength)){
+	  if(type == "empirical"){
+	    levels.strength <- 1 # doesn't matter anyway
+	  }else if(type == "fixed"){
+	    levels.strength <- 1
+	  }else if(type == "quantile"){
+	    levels.strength <- 0.01
+	  }
+	}
+	# Notice that by default, data.type is set to WHO 2012. 
+	# This is only consequential to the codings are done. 
+	# It does not take over the probbase from training data, 
+	#   because customization.dev is set to TRUE.
+	fit <- insilico.fit(data = data, 
+						isNumeric = isNumeric, 
+						updateCondProb = updateCondProb, 
+						keepProbbase.level = keepProbbase.level, 
+						CondProb = CondProb, 
+						CondProbNum = CondProbNum, 
+						datacheck = FALSE, 
+						datacheck.missing = FALSE, 
+						warning.write = FALSE, 
+						external.sep = FALSE, 
+						Nsim = Nsim, 
+						thin = thin, 
+						burnin = burnin, 
+						auto.length = auto.length, 
+						conv.csmf = conv.csmf, 
+						jump.scale = jump.scale, 
+						levels.prior = levels.prior, 
+						levels.strength = levels.strength, 
+						trunc.min = trunc.min, 
+						trunc.max = trunc.max, 
+						subpop = subpop, 
+						java_option = java_option, 
+						seed = seed, 
+						phy.code = phy.code, 
+						phy.cat = phy.cat, 
+						phy.unknown = phy.unknown, 
+						phy.external = phy.external, 
+						phy.debias = phy.debias, 
+						exclude.impossible.cause = FALSE, 
+						indiv.CI = indiv.CI, 
+						impossible.combination = impossible.combination,
+						
+						customization.dev = TRUE, 
+						Probbase_by_symp.dev = FALSE, 
+						probbase.dev = probbase.touse, 
+						table.dev = prob.learn$table.alpha, 
+						table.num.dev = prob.learn$table.num, 
+						gstable.dev = colnames(prob.learn$cond.prob), 
+						nlevel.dev = 15
+						)
+	return(fit)  	
+} 
