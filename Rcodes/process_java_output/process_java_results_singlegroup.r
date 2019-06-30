@@ -182,6 +182,7 @@ for(Case in c(3, 4, 1, 2)){
 		pre0 <- paste0("Case", Case, Cov, "N", n, "P", p, "Miss", miss)
 		load(paste0("../data/processed/", pre0, "-metrics1.rda"))
 		tmp1 <- apply(allout, c(2, 3), mean, na.rm = TRUE)
+		# tmp1[3, 9:10] <- tmp1[4, 9:10]
 		tmp <- rbind(tmp1[c("Fan w/i prior"), ], tmp0[1, ], tmp1[c( "G-Wishart RJ", "G-Wishart BD", "Bayesian (ave corr)"), ])
 		rownames(tmp) <- c("Semi-parametric", "Uniform prior", "G-Wishart RJ", "G-Wishart BD", "Spike-and-Slab prior")
 		tmp <- tmp[, c("M norm", "F norm", "inf norm", "AUC", "max F1")]

@@ -11,25 +11,24 @@ library(ROCR)
 source("functions.r")
 
 Cov <- "SSSL"
-for(Case in c( "B", "A")){
+for(Case in c( "A", "B")){
 	for(n.index in 1:3){
 		n <- c(0, 100, 200)[n.index]
 		for(miss in c("0.0", "0.2", "0.5")){
 			p <- 50
 			pre0 <- paste0("newCase", Case, "Random",n, Cov, "N", n+800, "P", p, "Miss", miss)
-			if(file.exists(paste0("../data/processed/", pre0, "-metrics1.rda"))) next
+			# if(file.exists(paste0("../data/processed/", pre0, "-metrics1.rda"))) next
 			files <- list.files(paste0("../experiments/", pre0, "/"))
 			files <- files[grep("prob_out.txt", files)]
 			files <- files[-grep("s1", files)]
 			reps <- gsub("_prob_out.txt", "", gsub(paste0(pre0, "Rep"), "", files))
 			allout <- array(NA, c(length(reps), 6, 10))
-			if(file.exists(paste0("../data/processed/", pre0, "-metrics1.rda"))) next
-
 			metric <- matrix(NA, 12*length(reps), 7)
 			colnames(metric) <- c("Case", "Training", "Method", "Metric", "Value", "Miss", "Seed")
 			counter <- 1
+			print(pre0)
 			print(length(reps))
-			for(ii in 1:length(reps)){
+			for(ii in 1:min(length(reps), 50)){
 				rep <- reps[ii]
 				prefix <- paste0("../experiments/", pre0, "/", pre0, "Rep", rep)
 				X <- as.matrix(fread(paste0(prefix, "_X.txt")))
@@ -79,8 +78,8 @@ for(Case in c( "B", "A")){
 				metric[counter : (counter + 11), "Metric"] <- rep(colnames(out), each = 3)
 				metric[counter : (counter + 11), "Value"] <- as.numeric(out)
 				counter <- counter + 12
-				print(out)
-				print(ii)
+				# print(out)
+				cat(".")
 			} 
 			save(metric, file = paste0("../data/processed/", pre0, "-metrics1.rda"))	
 		}

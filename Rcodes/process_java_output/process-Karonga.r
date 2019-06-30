@@ -430,13 +430,16 @@ metrics.all$Type <- factor(metrics.all$Type, levels = prop)
 mets <- c("Tariff",  "InterVA" , "Naive Bayes", "InSilicoVA", "King-Lu", "Gaussian Mixture") 
 metrics.all$Method2 <- factor(metrics.all$Method2, levels = mets) 
 cbPalette <- c('#377eb8','#4daf4a','#984ea3','#ff7f00','#e41a1c', '#a65628')
-g1 <- ggplot(subset(metrics.all, Metric == "CSMF Accuracy" & Method %in% c( "King-Lu") ==FALSE), aes(x = Method2, y = Value, color = Method2, group = Method, fill = group)) + facet_wrap(~Type) + geom_boxplot() + theme_bw()  + theme(axis.text.x = element_text(angle = 30, hjust = 1), legend.position = "none")  + ylab("Accuracy") + scale_color_manual(values=cbPalette) + scale_fill_manual(values = c("white", "white", "gray80")) + xlab("")
+metrics.all$group <- revalue(metrics.all$group, c("prior"="Marginal Prior", "training" = "Labeled Data"))
+metrics.all$group <- factor(metrics.all$group, levels = c("Marginal Prior", "Labeled Data", "Both"))
+g1 <- ggplot(subset(metrics.all, Metric == "CSMF Accuracy" & Method %in% c( "King-Lu") ==FALSE), aes(x = Method2, y = Value, color = Method2, group = Method, fill = group)) + facet_wrap(~Type) + geom_boxplot() + theme_bw()  + theme(axis.text.x = element_text(angle = 30, hjust = 1), legend.position=c(0.9,0.15))  + ylab("CSMF Accuracy") + scale_color_manual(values=cbPalette, guide = FALSE) + scale_fill_manual(name = "Fitted with", values = c("white", "gray80", "gray50")) + xlab("")  
 
 
-g2 <- ggplot(subset(metrics.all, Metric == "Top Cause Acc" & Method %in% c("King-Lu") ==FALSE), aes(x = Method2, y = Value, color = Method2, group = Method, fill = group)) + facet_wrap(~Type) + geom_boxplot() + theme_bw()  + theme(axis.text.x = element_text(angle = 30, hjust = 1), legend.position = "none")  + ylab("Accuracy") + scale_color_manual(values=cbPalette) + scale_fill_manual(values = c("white", "white", "gray80")) + xlab("")
+g2 <- ggplot(subset(metrics.all, Metric == "Top Cause Acc" & Method %in% c("King-Lu") ==FALSE), aes(x = Method2, y = Value, color = Method2, group = Method, fill = group)) + facet_wrap(~Type) + geom_boxplot() + theme_bw()  + theme(axis.text.x = element_text(angle = 30, hjust = 1), legend.position=c(0.9,0.15))  + ylab("CSMF Accuracy") + scale_color_manual(values=cbPalette, guide = FALSE) + scale_fill_manual(name = "Fitted with", values = c("white", "gray80", "gray50")) + xlab("")  
 
  
-g3 <- ggplot(subset(metrics.all, Metric == "Top 3 Cause Acc" & Method %in% c("King-Lu") ==FALSE), aes(x = Method2, y = Value, color = Method2, group = Method, fill = group)) + facet_wrap(~Type) + geom_boxplot() + theme_bw()  + theme(axis.text.x = element_text(angle = 30, hjust = 1), legend.position = "none")  + ylab("Accuracy") + scale_color_manual(values=cbPalette) + scale_fill_manual(values = c("white", "white", "gray80")) + xlab("")
+g3 <- ggplot(subset(metrics.all, Metric == "Top 3 Cause Acc" & Method %in% c("King-Lu") ==FALSE), aes(x = Method2, y = Value, color = Method2, group = Method, fill = group)) + facet_wrap(~Type) + geom_boxplot() + theme_bw()  + theme(axis.text.x = element_text(angle = 30, hjust = 1), legend.position=c(0.9,0.15))  + ylab("CSMF Accuracy") + scale_color_manual(values=cbPalette, guide = FALSE) + scale_fill_manual(name = "Fitted with", values = c("white", "gray80", "gray50")) + xlab("")  
+
 
 
 pdf("../figures/Karonga_compare_box-CSMF.pdf", width = 9, height=5)
