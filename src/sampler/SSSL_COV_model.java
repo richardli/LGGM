@@ -279,9 +279,13 @@ public class SSSL_COV_model extends COV_model{
         return testprob;
     }
 
-
     public void sample_omega(RealMatrix S, int n, Mix_data data, NormalDistribution rngN, Gamma rngG, int i, boolean
             update_with_test, Random rand, double power){
+        sample_omega(S, n, data, rngN, rngG, i, update_with_test, rand, power, true);
+    }
+
+    public void sample_omega(RealMatrix S, int n, Mix_data data, NormalDistribution rngN, Gamma rngG, int i, boolean
+            update_with_test, Random rand, double power, boolean approx){
 
         /** Organization **/
         int N;
@@ -391,6 +395,14 @@ public class SSSL_COV_model extends COV_model{
         RealMatrix cross = omega11_inv.preMultiply(umat.transpose()).preMultiply(umat).preMultiply(omega11_inv);
         double[] v = ESSsampler.sample(v_current, 3, mumat, sd2mat, true, n_and_lambda, omega11_inv, cross,
                 umat, Dmat, rand);
+        if(!approx){
+            n_and_lambda = new double[3];
+            n_and_lambda[0] = N;
+            n_and_lambda[1] = this.lambda;
+            n_and_lambda[2] = s22;
+           v = ESSsampler.sample(v_current, 5, mumat, sd2mat, true, n_and_lambda, omega11_inv, cross,
+                    umat, Dmat, rand);
+        }
         double vv = Math.abs(v[0]);
 
 

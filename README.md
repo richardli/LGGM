@@ -22,16 +22,16 @@ Pcont=5 # number of continuous variables
 misspecified=true # misspecification described in Sec 5.1
 transform=true # misspecification of continuous variables described in Sec 5.1
 dir=../data/ # direction to save the results
-name=test1 # a name of the experiment
+name=test # a name of the experiment
 seed=12345
-java -cp .:../library/\*:../library/jdistlib-0.4.1-bin/\* -Xmx2g sampler/Latent_model $N $P $miss $Pcont 1 SSSL Random 1000 1 $seed false $misspecified true $transform $dir $name 0
+java -cp .:../library/\*:../library/jdistlib-0.4.1-bin/\* -Xmx2g sampler/Latent_model $N $P $miss $Pcont 1 SSSL Random 1000 1 $seed false $misspecified true $transform $dir $name 0 false 
 ```
 
 3. Process the results in R
 The configurations are hard-coded in the R codes at the beginning. This script calculates the values used to generate Table 1 of the paper. (But notice the complete Table 1 is calculated as averages of a large number of replications under different cases.)
 ```
 cd ../Rcodes
-Rscript process_java_output/process_java_results_sim1A.r
+Rscript process_java_output/process_java_results_singlegroup.r
 ```
 
 ## Simulation: estimating the latent graphical model with classification
@@ -57,7 +57,7 @@ java -cp .:../library/\*:../library/jdistlib-0.4.1-bin/\* -Xmx2g sampler/Latent_
 The configurations are hard-coded in the R codes at the beginning. This script calculates the values used to generate Figure 2 of the paper. (But notice the complete Figure 2 is calculated as the boxplot of a large number of replications under different cases.)
 ```
 cd ../Rcodes
-Rscript process_java_output/process_java_results_sim2A.r
+Rscript process_java_output/process_java_results_multigroup.r
 ```
 
 ## PHMRC data example

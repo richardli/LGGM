@@ -240,7 +240,7 @@ public class ESSsampler {
             for(int i = 0; i < par2.getColumnDimension() ; i++) loglik -= 0.5 / (par2.getEntry(i,i));
 
 
-        }else if(type == 3){
+        }else if(type == 3 | type == 5){
             /** sampling v | u, 1 dimensional, for omega matrix, using Gaussian approximation
              *  par0 = c(n, lambda)
              *  par1 = Omega_{-j, -j}^(-1)        : P-1 * P-1
@@ -265,6 +265,13 @@ public class ESSsampler {
             if(sample.getEntry(0,0) <= 0) loglik = - Double.MAX_VALUE;
         }else{
             System.out.println("Wrong log likelihood type!");
+        }
+        if(type == 5){
+            /** correcting for Gaussian approximation
+             *  par0 = c(n, lambda, s_jj)
+             **/
+            loglik += (par0[0]/2.0-1) * Math.log(Math.abs(sample.getEntry(0,0))) + sample.getEntry(0,0) * sample.getEntry(0,0) * (par0[2] + 1) * (par0[2] + 1)/ 4/ (par0[0] + 0.0) - Math.abs(sample.getEntry(0,0)) * (par0[2] + 1) ;
+            if(sample.getEntry(0,0) <= 0) loglik = - Double.MAX_VALUE;
         }
 
         return(loglik);
