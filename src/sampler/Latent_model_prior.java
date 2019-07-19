@@ -126,7 +126,6 @@ public class Latent_model_prior extends Latent_model{
         int rep0 = 0;
 
         boolean update_sparsity = false;
-//        String expriment_name = pre + covType + "N" + N + "P" + P + "Miss" + miss;
         Random rand = new Random(seed);
         MersenneTwister rngEngin = new MersenneTwister(seed);
         double c = 0.2;
@@ -162,62 +161,6 @@ public class Latent_model_prior extends Latent_model{
                 EvalUtil.save(model, model.cov_sssl, currentdir, currentfile, covType, false);
             }
         }
-//
-//        for (double v0 : v0s) {
-//            for (double lambda : lambdas) {
-//                expriment_name = "AR1";
-//                currentdir = directory + expriment_name + "/";
-//                double v1 = 1;
-//                String currentfile = expriment_name + "v0" + v0 + "lambda" + lambda;
-//                Latent_model_prior model = new Latent_model_prior(Nitr, Nitr / 2, 1, 0, P, G, covType);
-//                model.data.init_adaptive(sd0, a_sd0, b_sd0, adaptive, power);
-//                Simulator simulator = new Simulator(N, P, G);
-//                simulator.simCov(P, c, multiplier, seed, covTypeSim);
-//                simulator.set_sim(model, rngEngin, rand, covType, miss, informative, misspecified, nContinuous, transform,
-//                        seed);
-//
-//                EvalUtil.savetruth(model, currentdir, currentfile, covType,
-//                        simulator.prec, simulator.cov, simulator.mean);
-//
-//
-//                boolean update_structure = false;
-//                model.Sample_SSSL_prior(seed, v0, v1, lambda, simulator.prec, 0, update_structure);
-//                EvalUtil.save_full(model, currentdir, currentfile, covType, false);
-//                EvalUtil.save(model, model.cov_sssl, currentdir, currentfile, covType, false);
-//            }
-//        }
-
-//        double v0 = 0.01;
-//        double v1 = 1;
-//        double lambda = 10;
-//        if(args.length > 0){
-//            System.out.println(Arrays.toString(args));
-//            directory = args[0];
-//            P = Integer.parseInt(args[1]);
-//            v0 = Double.parseDouble(args[2]);
-//            v1 = Double.parseDouble(args[3]) * v0;
-//            lambda = Double.parseDouble(args[4]);
-//            Nitr = Integer.parseInt(args[5]);
-//        }
-//
-//        String expriment_name = "Sparsity";
-//        String currentdir = directory + expriment_name + "/";
-//        double[] ps = new double[]{0.01, 0.001, 0.0001, 0.00005, 0.00001};
-//            for(double p : ps){
-//                String currentfile =  expriment_name + v0+ "-" + v1 + "-" + lambda + "-" + p + "-" + P;
-//                Latent_model_prior model = new Latent_model_prior(Nitr, Nitr/2 , 1, 0, P, G, covType);
-//                model.data.init_adaptive(sd0, a_sd0, b_sd0, adaptive, power);
-//                Simulator simulator = new Simulator(N, P, G);
-//                simulator.simCov(P, c, multiplier, seed, covTypeSim);
-//                simulator.set_sim(model, rngEngin, rand, covType, miss, informative, misspecified, nContinuous, transform,
-//                        seed);
-//
-//                boolean update_structure = true;
-//                model.Sample_SSSL_prior(seed, v0, v1, lambda, simulator.prec, p, update_structure);
-//                EvalUtil.save(model, model.cov_sssl, currentdir, currentfile, covType, false);
-//                EvalUtil.savearray(model.spar, currentdir, currentfile, covType, "sparsity");
-//            }
-//        }
     }
 }
 

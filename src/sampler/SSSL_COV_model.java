@@ -204,14 +204,6 @@ public class SSSL_COV_model extends COV_model{
 //        if(itr > 0 & itr < Nitr/2 & model.anneal) temp = 0.1 + Math.sqrt(itr+1.0)/Math.sqrt(Nitr/2.0)* 0.9;
         if(itr > 0 & itr < Nitr/2 & model.anneal) temp = 0.5 + (itr+1.0)/(Nitr/2.0)* 0.5;
         double[][] testprob = model.update_group( rand, rngG, rngN, rngE, integrate, NB, same_pop, temp, true);
-//        double[][] testprob = new double[1][1];
-//        if(itr == 0 | itr % 10 != 0){
-//            testprob = model.update_group( rand, rngG, rngN, rngE, integrate, NB, same_pop,
-//                    temp, true);
-//        }else{
-//            testprob = model.update_group_marginal( rand, rngG, rngN, rngE, integrate, NB, same_pop,
-//                    temp, true);
-//        }
 
         /** resample latent variable within Mix_data **/
         data.resample_Z(rand, rngN, rngE, data.Delta, this.corr_by_tau, verbose);
@@ -365,20 +357,6 @@ public class SSSL_COV_model extends COV_model{
                         Dmat, zeromat, rand);
 
 
-        /** Sample sqrt(v) from ESS **/
-//        v_current.setEntry(0, 0, Math.sqrt(v_current.getEntry(0, 0)));
-//
-//        double[][] sd2 = new double[1][1];
-//        sd2[0][0] =  1 / (s22 + 1);
-//        RealMatrix sd2mat = new Array2DRowRealMatrix(sd2);
-//        double[] n_and_lambda = new double[2];
-//        n_and_lambda[0] = N;
-//        n_and_lambda[1] = this.lambda;
-//        RealMatrix umat = new Array2DRowRealMatrix(u);
-//        RealMatrix cross = omega11_inv.preMultiply(umat.transpose()).preMultiply(umat).preMultiply(omega11_inv);
-//        double[] v_sqrt = ESSsampler.sample(v_current, 2, zeromat, sd2mat, true, n_and_lambda, omega11_inv, cross,
-//                umat, Dmat, rand);
-//        double vv = v_sqrt[0]*v_sqrt[0];
 
          /** Sample v from ESS using normal approximation **/
 
@@ -404,12 +382,6 @@ public class SSSL_COV_model extends COV_model{
                     umat, Dmat, rand);
         }
         double vv = Math.abs(v[0]);
-
-
-
-
-//        vv = rngG.nextDouble(1 + N/2.0 + power,  (1 + this.lambda * data.d[i] * data.d[i]+ S.getEntry(i,i)) / 2.0);
-
 
         /** Transfer back to omega **/
         double addterm = (umat.preMultiply(omega11_inv).preMultiply(umat.transpose())).getEntry(0, 0);

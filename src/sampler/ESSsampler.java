@@ -11,11 +11,6 @@ import java.util.Random;
  */
 public class ESSsampler {
 
-//
-//    public static double[] sample (double[] current, int type, double[] mu, double[][] sigma, boolean diagonal,
-//                                   double[][] par, Random rand){
-//        return(sample(current, type, mu, sigma, diagonal, par, rand, 100));
-//    }
     public static double[] sample (RealMatrix current, int type, RealMatrix mu, RealMatrix sigma, boolean diagonal,
                                    double[] par0, RealMatrix par1, RealMatrix par2, RealMatrix par3, RealMatrix par4,
                                    Random rand){

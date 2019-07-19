@@ -361,43 +361,6 @@ public class Latent_model {
                 EvalUtil.save_full(this, this.cov_sssl, currentdir, currentfile + "_s1", covType, true);
             }
             EvalUtil.save(this, this.cov_sssl, currentdir, currentfile + "_s1", covType, true);
-
-            // this.cov_sssl.corr = this.cov_sssl.corr_ave.scalarAdd(0.0);
-            // this.cov_sssl.cov = this.cov_sssl.corr_ave.scalarAdd(0.0);
-            // this.cov_sssl.prec = new LUDecomposition(this.cov_sssl.corr_ave).getSolver().getInverse();
-            // this.cov_sssl.invcorr = this.cov_sssl.prec.scalarAdd(0.0);
-            // for (int j = 0; j < this.P; j++) {
-            //     for (int jj = 0; jj < this.P; jj++) {
-            //         this.cov_sssl.inclusion[j][jj] = this.cov_sssl.inclusion_ave[j][jj] > (Nout) / 2.0 ? 1 : 0;
-            //     }
-            // }
-            // boolean postselection = true;
-
-            // for (int i = 0; i < this.data.d.length; i++) this.data.d[i] = 1;
-
-            // /** Start of MCMC loop **/
-            // if (update_group) {
-            //     for (int itr = 0; itr < Nitr; itr++) {
-            //         System.out.println("Post Iteration " + itr);
-            //         double[][] testprob = new double[this.N_test][this.G];
-
-            //         if (update_group | this.update_with_test) {
-            //             double[][] tmp = this.cov_sssl.resample_SSSL(this, this.data,
-            //                     rand, rngEngine2, rngN, rngE, rngG, update_sparsity, verbose,
-            //                     integrate, NB, same_pop, itr, Nitr, postselection);
-            //             for (int i = 0; i < this.N_test; i++) {
-            //                 for (int j = 0; j < this.G; j++) {
-            //                     testprob[i][j] = tmp[i][j];
-            //                 }
-            //             }
-            //         }
-            //         // this overrides only the assignment probabilities
-            //         if (itr > burnin &
-            //                 (itr - this.burnin) % (this.thin + 0.0) == 0) {
-            //             this.save_output(itr, verbose, testprob);
-            //         }
-            //     }
-            // }
         }
     }
 
