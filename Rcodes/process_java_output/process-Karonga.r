@@ -202,6 +202,23 @@ g <- g + xlab("True CSMF") + ylab("Estimated CSMF")
 g
 dev.off()
 
+save(csmf.plot2, file = "csmf.plot2.RData")
+csmf.plot3 <-  subset(csmf.plot2, !(Method %in% c("Tariff", "InterVA")))
+csmf.plot3$Method <- factor(csmf.plot3$Method, levels = levels(csmf.plot3$Method)[-c(1,2)])
+pdf("../Figures/Karonga_csmf-sub.pdf", width = 8, height=3)
+set.seed(123)
+lim.csmf <- range(csmf.plot3[, -c(1,2)], na.rm=TRUE)
+g <- ggplot(data = subset(csmf.plot3, Method != ""))
+g <- g + geom_errorbar(aes(x=truth, y=value, ymin=lower, ymax=upper), alpha = 0.8, color = "#377eb8")
+g <- g + geom_point(aes(x=truth, y=value), col="#d7301f", size = 1.8)
+g <- g + geom_text_repel(data = subset(csmf.plot3, truth > 0.15), aes(truth, value, label=cause), color = "#d73027", size = 2.8, segment.alpha=0, force = 0.1, direction="y")
+g <- g + facet_wrap(~Method)
+g <- g + geom_abline(slope=1,intercept=0, linetype="longdash", color = "gray50", alpha = 0.5)
+g <- g + xlim(lim.csmf) + ylim(lim.csmf) + theme_bw()
+g <- g + xlab("True CSMF") + ylab("Estimated CSMF")
+g
+dev.off()
+
 ###########################################################################
 print(metric)
 xtable(metric, digits=3)
